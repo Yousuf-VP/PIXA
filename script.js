@@ -1,1743 +1,217 @@
-/* =====================================================
-   PIXAFORGE — MAIN WEBSITE
-   COOKIE EMPEROR — KINGDOM MANAGEMENT ENGINE
-===================================================== */
+/* PIXAFORGE — site systems + playable Cookie Emperor */
+"use strict";
 
-/* =========================
-   1. WEBSITE NAVIGATION
-========================= */
-
-const menuToggle = document.getElementById("menuToggle");
-const mainNav = document.getElementById("mainNav");
-
-menuToggle?.addEventListener("click", () => {
-    const open = mainNav.classList.toggle("open");
-    menuToggle.setAttribute("aria-expanded", String(open));
-});
-
-mainNav?.querySelectorAll("a").forEach(link => {
-    link.addEventListener("click", () => {
-        mainNav.classList.remove("open");
-        menuToggle?.setAttribute("aria-expanded", "false");
-    });
-});
-
-const cursorGlow = document.querySelector(".cursor-glow");
-
-if (cursorGlow && window.matchMedia("(hover:hover)").matches) {
-    window.addEventListener("pointermove", event => {
-        cursorGlow.style.left = `${event.clientX}px`;
-        cursorGlow.style.top = `${event.clientY}px`;
-    });
-}
-
-console.log("PIXAFORGE initialized.");
-
-
-/* =========================
-   2. GAME ELEMENTS
-========================= */
-
-const $ = id => document.getElementById(id);
-
-const gameOverlay = $("gameOverlay");
-const closeGameButton = $("closeGame");
-const giantCookie = $("giantCookie");
-
-const cookieBalanceElement = $("cookieBalance");
-const cookieCpsElement = $("cookieCps");
-const empireLevelElement = $("empireLevel");
-const empireRankElement = $("empireRank");
-
-const clickPowerElement = $("clickPower");
-const kingdomTitleElement = $("kingdomTitle");
-const kingdomQuoteElement = $("kingdomQuote");
-
-const levelProgressText = $("levelProgressText");
-const levelProgressBar = $("levelProgressBar");
-
-const storeContent = $("storeContent");
-const storeTabs = document.querySelectorAll(".store-tab");
-
-const achievementCountElement = $("achievementCount");
-const saveIndicator = $("saveIndicator");
-
-const settingsModal = $("settingsModal");
-const gameSettingsButton = $("gameSettings");
-const closeSettingsButton = $("closeSettings");
-const settingsDoneButton = $("settingsDone");
-
-const resetGameButton = $("resetGame");
-const toastContainer = $("toastContainer");
-
-const eventBanner = $("eventBanner");
-const eventText = $("eventText");
-
-
-/* =========================
-   3. GAME CONFIGURATION
-========================= */
-
-const SAVE_KEY = "pixaforge_cookie_emperor_v2";
-
-const BUILDINGS = [
-    {
-        id: "bakery",
-        name: "Tiny Bakery",
-        icon: "🏠",
-        description: "Your first cookie production building.",
-        baseCost: 30,
-        production: 0.5,
-        workersRequired: 1,
-        buildTime: 5 * 60
-    },
-    {
-        id: "farm",
-        name: "Cookie Farm",
-        icon: "🌾",
-        description: "Grow ingredients for the kingdom.",
-        baseCost: 180,
-        production: 2,
-        workersRequired: 2,
-        buildTime: 8 * 60
-    },
-    {
-        id: "oven",
-        name: "Royal Oven",
-        icon: "🔥",
-        description: "Bake large batches of royal cookies.",
-        baseCost: 800,
-        production: 8,
-        workersRequired: 3,
-        buildTime: 12 * 60
-    },
-    {
-        id: "factory",
-        name: "Cookie Factory",
-        icon: "🏭",
-        description: "Mass-produce cookies automatically.",
-        baseCost: 4000,
-        production: 35,
-        workersRequired: 5,
-        buildTime: 18 * 60
-    },
-    {
-        id: "mine",
-        name: "Cookie Mine",
-        icon: "⛏️",
-        description: "Extract rare ingredients underground.",
-        baseCost: 18000,
-        production: 150,
-        workersRequired: 8,
-        buildTime: 25 * 60
-    },
-    {
-        id: "generator",
-        name: "Enchanted Generator",
-        icon: "🔮",
-        description: "Use ancient magic to produce cookies.",
-        baseCost: 90000,
-        production: 700,
-        workersRequired: 12,
-        buildTime: 35 * 60
-    },
-    {
-        id: "laboratory",
-        name: "Royal Dessert Laboratory",
-        icon: "🧪",
-        description: "Research the future of cookie production.",
-        baseCost: 450000,
-        production: 3200,
-        workersRequired: 18,
-        buildTime: 50 * 60
-    }
+const PIXAFORGE_CONFIG = { particleCount: 32, revealThreshold: 0.12, toastDuration: 2600, favoriteStorageKey: "pixaforge_favorites_v1" };
+const PIXAFORGE_NEWS = [
+  { category:"studio", label:"STUDIO UPDATE", date:"NOVEMBER 2026", title:"A new digital playground is taking shape.", description:"PIXAFORGE is building a collection of original browser gaming experiences. The journey is just getting started.", link:"#about", linkText:"EXPLORE THE STUDIO" },
+  { category:"development", label:"DEVELOPMENT", date:"NOVEMBER 2026", title:"Cookie Emperor continues to grow.", description:"Our first original game is expanding with new systems, progression and a growing cookie kingdom.", link:"#cookie-emperor", linkText:"PLAY THE GAME" },
+  { category:"development", label:"IN DEVELOPMENT", date:"COMING SOON", title:"A mysterious world is on the horizon.", description:"Unknown World is part of the next chapter of the PIXAFORGE collection.", link:"#games", linkText:"VIEW COLLECTION" },
+  { category:"release", label:"COLLECTION", date:"PIXAFORGE", title:"Three game worlds. One growing collection.", description:"Explore the current lineup and follow the development of upcoming experiences.", link:"#games", linkText:"EXPLORE ARCADE" }
 ];
+const $ = (s, p=document) => p.querySelector(s);
+const $$ = (s, p=document) => [...p.querySelectorAll(s)];
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const touchDevice = matchMedia("(hover: none)").matches;
+const pageLoader=$("#pageLoader"), siteHeader=$("#siteHeader"), scrollProgress=$("#scrollProgress"), menuToggle=$("#menuToggle"), mainNav=$("#mainNav");
+const cursorGlow=$("#cursorGlow"), cursorDot=$("#cursorDot"), gamesGrid=$("#gamesGrid"), gameSearch=$("#gameSearch"), gamesEmpty=$("#gamesEmpty");
+const newsGrid=$("#newsGrid"), newsEmpty=$("#newsEmpty"), detailsModal=$("#detailsModal"), modalImage=$("#modalImage"), modalTitle=$("#modalTitle"), modalDescription=$("#modalDescription"), modalCategory=$("#modalCategory"), modalStatus=$("#modalStatus"), modalPlay=$("#modalPlay"), toastContainer=$("#toastContainer"), floatingTopButton=$("#floatingTopButton");
 
-const UPGRADES = [
-    {
-        id: "strongHands",
-        name: "Stronger Hands",
-        icon: "💪",
-        description: "Double your cookies per click.",
-        cost: 100,
-        type: "click",
-        multiplier: 2
-    },
-    {
-        id: "secretRecipe",
-        name: "Secret Recipe",
-        icon: "📜",
-        description: "Increase all building production by 50%.",
-        cost: 350,
-        type: "production",
-        multiplier: 1.5
-    },
-    {
-        id: "goldenOven",
-        name: "Golden Oven",
-        icon: "♨️",
-        description: "Double building production.",
-        cost: 1200,
-        type: "production",
-        multiplier: 2
-    },
-    {
-        id: "royalGloves",
-        name: "Royal Baking Gloves",
-        icon: "🧤",
-        description: "Triple your clicking power.",
-        cost: 2500,
-        type: "click",
-        multiplier: 3
-    },
-    {
-        id: "cookieAlchemy",
-        name: "Cookie Alchemy",
-        icon: "✨",
-        description: "Increase production by 75%.",
-        cost: 8000,
-        type: "production",
-        multiplier: 1.75
-    },
-    {
-        id: "royalEngineering",
-        name: "Royal Engineering",
-        icon: "⚙️",
-        description: "Double building production.",
-        cost: 25000,
-        type: "production",
-        multiplier: 2
-    },
-    {
-        id: "emperorTouch",
-        name: "Emperor's Touch",
-        icon: "👑",
-        description: "Five times more cookies per click.",
-        cost: 100000,
-        type: "click",
-        multiplier: 5
-    },
-    {
-        id: "grandBakery",
-        name: "Grand Bakery Design",
-        icon: "🏰",
-        description: "Triple all building production.",
-        cost: 350000,
-        type: "production",
-        multiplier: 3
-    }
+/* Loading and shared feedback */
+function finishLoading(){ if(!pageLoader)return; pageLoader.classList.add("loaded"); setTimeout(()=>pageLoader.remove(),800); }
+if(document.readyState==="complete") finishLoading(); else addEventListener("load",finishLoading,{once:true});
+setTimeout(finishLoading,3500);
+function showToast(message){ if(!toastContainer)return; const node=document.createElement("div"); node.className="toast"; node.textContent=message; toastContainer.append(node); setTimeout(()=>{node.classList.add("removing");setTimeout(()=>node.remove(),320)},PIXAFORGE_CONFIG.toastDuration); }
+
+/* Navigation */
+function closeNavigation(){ if(!menuToggle||!mainNav)return; menuToggle.classList.remove("active");mainNav.classList.remove("open");menuToggle.setAttribute("aria-expanded","false");menuToggle.setAttribute("aria-label","Open navigation");document.body.classList.remove("menu-open"); }
+if(menuToggle&&mainNav){ menuToggle.addEventListener("click",()=>{const open=mainNav.classList.toggle("open");menuToggle.classList.toggle("active",open);menuToggle.setAttribute("aria-expanded",String(open));menuToggle.setAttribute("aria-label",open?"Close navigation":"Open navigation");document.body.classList.toggle("menu-open",open)}); $$(".nav-link",mainNav).forEach(a=>a.addEventListener("click",closeNavigation)); document.addEventListener("click",e=>{if(mainNav.classList.contains("open")&&!mainNav.contains(e.target)&&!menuToggle.contains(e.target))closeNavigation()}); addEventListener("resize",()=>{if(innerWidth>760)closeNavigation()}); }
+let scrollFrame=false;
+function updateScrollInterface(){const y=scrollY,max=document.documentElement.scrollHeight-innerHeight;if(scrollProgress)scrollProgress.style.width=`${max>0?y/max*100:0}%`;siteHeader?.classList.toggle("scrolled",y>40);floatingTopButton?.classList.toggle("visible",y>600);scrollFrame=false;}
+addEventListener("scroll",()=>{if(!scrollFrame){requestAnimationFrame(updateScrollInterface);scrollFrame=true}},{passive:true});updateScrollInterface();
+function scrollToTop(){scrollTo({top:0,behavior:reducedMotion?"auto":"smooth"})}floatingTopButton?.addEventListener("click",scrollToTop);$("#backToTop")?.addEventListener("click",e=>{e.preventDefault();scrollToTop()});
+const navSections=$$("#home,#games,#features,#news,#about"),navLinks=$$(".nav-link");
+if("IntersectionObserver" in window){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting)navLinks.forEach(a=>a.classList.toggle("active",a.getAttribute("href")===`#${entry.target.id}`))}),{rootMargin:"-35% 0px -55% 0px"});navSections.forEach(s=>observer.observe(s));}
+
+/* Scroll reveal and counters */
+const revealElements=$$(".reveal");
+if("IntersectionObserver" in window&&!reducedMotion){const ro=new IntersectionObserver((entries,obs)=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add("visible");obs.unobserve(e.target)}}),{threshold:PIXAFORGE_CONFIG.revealThreshold,rootMargin:"0px 0px -35px 0px"});revealElements.forEach(el=>ro.observe(el));}else revealElements.forEach(el=>el.classList.add("visible"));
+$$(".games-grid,.features-grid,.news-grid,.numbers-grid").forEach(group=>[...group.children].forEach((item,i)=>item.style.transitionDelay=`${Math.min(i*90,360)}ms`));
+function animateCounter(el){const target=Number(el.dataset.count);if(!Number.isFinite(target))return;if(reducedMotion){el.textContent=target.toLocaleString();return}const start=performance.now(),duration=1300;function tick(now){const p=Math.min((now-start)/duration,1),v=Math.round(target*(1-Math.pow(1-p,4)));el.textContent=v.toLocaleString();if(p<1)requestAnimationFrame(tick)}requestAnimationFrame(tick)}
+const counters=$$("[data-count]");if("IntersectionObserver" in window){const co=new IntersectionObserver((entries,obs)=>entries.forEach(e=>{if(e.isIntersecting){animateCounter(e.target);obs.unobserve(e.target)}}),{threshold:.65});counters.forEach(el=>co.observe(el))}else counters.forEach(animateCounter);
+
+/* Background particles and cursor */
+function createParticles(){const field=$("#particleField");if(!field||reducedMotion||touchDevice)return;const frag=document.createDocumentFragment();for(let i=0;i<PIXAFORGE_CONFIG.particleCount;i++){const p=document.createElement("span");p.className="particle";p.style.left=`${Math.random()*100}%`;p.style.top=`${Math.random()*100}%`;p.style.animationDuration=`${12+Math.random()*20}s`;p.style.animationDelay=`${-Math.random()*25}s`;p.style.opacity=String(.15+Math.random()*.45);frag.append(p)}field.append(frag)}createParticles();
+if(cursorGlow&&cursorDot&&!touchDevice&&!reducedMotion){let x=0,y=0,dx=0,dy=0,active=false;addEventListener("mousemove",e=>{x=e.clientX;y=e.clientY;cursorGlow.style.opacity="1";cursorDot.style.opacity="1";if(!active){active=true;requestAnimationFrame(moveCursor)}},{passive:true});function moveCursor(){dx+=(x-dx)*.25;dy+=(y-dy)*.25;cursorGlow.style.left=`${x}px`;cursorGlow.style.top=`${y}px`;cursorDot.style.left=`${dx}px`;cursorDot.style.top=`${dy}px`;if(Math.abs(x-dx)>.1||Math.abs(y-dy)>.1)requestAnimationFrame(moveCursor);else active=false}document.addEventListener("mouseleave",()=>{cursorGlow.style.opacity="0";cursorDot.style.opacity="0"})}
+
+/* Game library filtering, favorites and details */
+function getGameCards(){return gamesGrid?$$(".game-card",gamesGrid):[]}function gameData(card){return{title:card.dataset.title||"Untitled game",description:card.dataset.description||"",category:card.dataset.category||"",status:card.dataset.status||"soon",image:card.dataset.image||"",link:card.dataset.link||""}}
+let activeGameFilter="all";
+function filterGames(){if(!gamesGrid)return;const query=(gameSearch?.value||"").trim().toLowerCase();let count=0;getGameCards().forEach(card=>{const d=gameData(card),category=activeGameFilter==="all"||d.category.split(/\s+/).includes(activeGameFilter),search=`${d.title} ${d.description} ${d.category}`.toLowerCase().includes(query),visible=category&&search;card.classList.toggle("is-filtered-out",!visible);card.setAttribute("aria-hidden",String(!visible));if(visible)count++});if(gamesEmpty)gamesEmpty.hidden=count!==0;resetCarouselAfterFilter();}
+$$(".filter-button").forEach(button=>button.addEventListener("click",()=>{activeGameFilter=button.dataset.filter||"all";$$(".filter-button").forEach(b=>b.classList.toggle("active",b===button));filterGames()}));gameSearch?.addEventListener("input",filterGames);
+$("#clearGameSearch")?.addEventListener("click",()=>{activeGameFilter="all";if(gameSearch)gameSearch.value="";$(".filter-button[data-filter='all']")?.click();gameSearch?.focus()});
+document.addEventListener("keydown",e=>{const t=e.target,typing=t instanceof HTMLElement&&(t.isContentEditable||["INPUT","TEXTAREA","SELECT"].includes(t.tagName));if(e.key==="/"&&!typing&&gameSearch){e.preventDefault();gameSearch.focus();$("#games")?.scrollIntoView({behavior:reducedMotion?"auto":"smooth"})}if(e.key==="Escape"){closeDetailsModal();closeNavigation()}});
+function readFavorites(){try{const v=JSON.parse(localStorage.getItem(PIXAFORGE_CONFIG.favoriteStorageKey)||"[]");return Array.isArray(v)?v:[]}catch{return[]}}let favorites=readFavorites();
+function saveFavorites(){try{localStorage.setItem(PIXAFORGE_CONFIG.favoriteStorageKey,JSON.stringify(favorites))}catch{showToast("Favorites could not be saved in this browser.")}}
+function updateFavoriteButtons(){getGameCards().forEach(card=>{const b=$(".favorite-button",card);if(!b)return;const on=favorites.includes(gameData(card).title);b.setAttribute("aria-pressed",String(on));b.textContent=on?"★":"☆"})}
+getGameCards().forEach(card=>$(".favorite-button",card)?.addEventListener("click",()=>{const title=gameData(card).title;if(favorites.includes(title)){favorites=favorites.filter(x=>x!==title);showToast(`${title} removed from favorites.`)}else{favorites.push(title);showToast(`${title} added to favorites.`)}saveFavorites();updateFavoriteButtons()}));updateFavoriteButtons();
+function openDetailsModal(card){if(!detailsModal)return;const d=gameData(card);if(modalTitle)modalTitle.textContent=d.title;if(modalDescription)modalDescription.textContent=d.description;if(modalCategory)modalCategory.textContent=d.category.toUpperCase();if(modalImage){modalImage.src=d.image;modalImage.alt=`${d.title} artwork`}if(modalStatus)modalStatus.textContent=d.status==="available"?"● AVAILABLE TO PLAY":"◷ IN DEVELOPMENT";if(modalPlay){modalPlay.hidden=d.status!=="available"||!d.link;if(!modalPlay.hidden){modalPlay.href=d.link;modalPlay.textContent="PLAY NOW ↗"}}detailsModal.classList.add("open");detailsModal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");$(".modal-close",detailsModal)?.focus()}
+function closeDetailsModal(){if(!detailsModal)return;detailsModal.classList.remove("open");detailsModal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
+getGameCards().forEach(card=>$(".game-details-button",card)?.addEventListener("click",()=>openDetailsModal(card)));$$('[data-modal-close]',detailsModal||document).forEach(b=>b.addEventListener("click",closeDetailsModal));
+
+/* News feed */
+function renderNews(filter="all"){if(!newsGrid)return;newsGrid.innerHTML="";const items=PIXAFORGE_NEWS.filter(item=>filter==="all"||item.category===filter);if(newsEmpty)newsEmpty.hidden=items.length>0;const frag=document.createDocumentFragment();items.forEach(item=>{const article=document.createElement("article");article.className="news-card";const top=document.createElement("div");top.className="news-card-top";const tag=document.createElement("span");tag.className="news-tag";tag.textContent=item.label;const date=document.createElement("span");date.className="news-date";date.textContent=item.date;top.append(tag,date);const h=document.createElement("h3");h.textContent=item.title;const p=document.createElement("p");p.textContent=item.description;const a=document.createElement("a");a.className="news-read";a.href=item.link||"#news";a.textContent=`${item.linkText||"READ MORE"} ↗`;article.append(top,h,p,a);frag.append(article)});newsGrid.append(frag)}
+renderNews();$$(".news-filter").forEach(b=>b.addEventListener("click",()=>{$$(".news-filter").forEach(x=>x.classList.toggle("active",x===b));renderNews(b.dataset.newsFilter||"all")}));
+
+/* Responsive game carousel: autoplay on desktop, tablet and mobile; user interaction always wins. */
+let carouselTimer=null,carouselIdleTimer=null,carouselUserActive=false,carouselVisible=false;
+function carouselCards(){return getGameCards().filter(c=>!c.classList.contains("is-filtered-out")&&c.getClientRects().length>0)}
+function stopCarousel(){clearTimeout(carouselTimer);carouselTimer=null}
+function carouselCanRun(){return !!gamesGrid&&!reducedMotion&&!document.hidden&&carouselVisible&&!carouselUserActive&&carouselCards().length>1}
+function cardLeftInTrack(card){const track=gamesGrid.getBoundingClientRect(),rect=card.getBoundingClientRect();return gamesGrid.scrollLeft+(rect.left-track.left)}
+function scheduleCarousel(){stopCarousel();if(!carouselCanRun())return;carouselTimer=setTimeout(()=>{const cards=carouselCards();if(cards.length<2)return;const first=cards[0],last=cards[cards.length-1],track=gamesGrid.getBoundingClientRect();let current=cards.find(card=>{const r=card.getBoundingClientRect();return r.right>track.left+Math.min(35,r.width*.2)});if(!current)current=first;let index=cards.indexOf(current),next=cards[index+1]||first;const target=next===first?0:cardLeftInTrack(next);gamesGrid.scrollTo({left:target,behavior:"smooth"});scheduleCarousel()},4700)}
+function pauseCarousel(){carouselUserActive=true;stopCarousel();clearTimeout(carouselIdleTimer);}
+function resumeCarousel(){clearTimeout(carouselIdleTimer);carouselIdleTimer=setTimeout(()=>{carouselUserActive=false;scheduleCarousel()},4200)}
+function resetCarouselAfterFilter(){if(!gamesGrid)return;stopCarousel();gamesGrid.scrollTo({left:0,behavior:reducedMotion?"auto":"smooth"});if(!carouselUserActive)scheduleCarousel()}
+if(gamesGrid){["pointerdown","touchstart","wheel","focusin"].forEach(type=>gamesGrid.addEventListener(type,pauseCarousel,{passive:type!=="focusin"}));["pointerup","touchend","touchcancel","focusout"].forEach(type=>gamesGrid.addEventListener(type,resumeCarousel,{passive:true}));gamesGrid.addEventListener("mouseenter",pauseCarousel);gamesGrid.addEventListener("mouseleave",resumeCarousel);gamesGrid.addEventListener("scroll",()=>{if(carouselUserActive){stopCarousel();resumeCarousel()}},{passive:true});}
+if("IntersectionObserver" in window&&gamesGrid){const carouselObserver=new IntersectionObserver(entries=>{carouselVisible=entries[0].isIntersecting;if(carouselVisible)scheduleCarousel();else stopCarousel()},{threshold:.12});carouselObserver.observe(gamesGrid)}else carouselVisible=true;
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stopCarousel();else scheduleCarousel()});
+
+/* Card tilt and hero parallax */
+if(!touchDevice&&!reducedMotion){getGameCards().forEach(card=>{card.addEventListener("pointermove",e=>{if(innerWidth<=760)return;const r=card.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;card.style.transform=`perspective(900px) rotateX(${(.5-y)*5}deg) rotateY(${(x-.5)*5}deg) translateY(-3px)`});card.addEventListener("pointerleave",()=>card.style.transform="")});const hero=$(".hero-visual");hero?.addEventListener("pointermove",e=>{const r=hero.getBoundingClientRect(),emblem=$(".hero-emblem-container",hero);if(emblem)emblem.style.transform=`translate(${((e.clientX-r.left)/r.width-.5)*12}px,${((e.clientY-r.top)/r.height-.5)*12}px)`});hero?.addEventListener("pointerleave",()=>{const emblem=$(".hero-emblem-container",hero);if(emblem)emblem.style.transform=""})}
+if(reducedMotion){const marquee=$(".marquee-content");if(marquee){marquee.style.animation="none";marquee.style.transform="none"}}
+$$ (".game-art img").forEach(img=>img.addEventListener("error",()=>img.classList.add("image-unavailable")));
+
+/* Single-page hash routing for the game. The landing page stays intact. */
+const siteMain=$("#siteMain"),gameView=$("#cookieEmperorView");
+function route(){const playing=location.hash.toLowerCase()==="#cookie-emperor";const wasPlaying=document.body.classList.contains("game-mode");if(siteMain)siteMain.hidden=playing;if(gameView)gameView.hidden=!playing;document.body.classList.toggle("game-mode",playing);if(playing){closeDetailsModal();closeNavigation();window.scrollTo({top:0,behavior:"auto"});renderGame();}else{updateScrollInterface();if(wasPlaying&&location.hash&&location.hash!=="#")requestAnimationFrame(()=>document.querySelector(location.hash)?.scrollIntoView({behavior:reducedMotion?"auto":"smooth"}))}}
+addEventListener("hashchange",route);
+
+/* =========================================================
+   COOKIE EMPEROR — ROYAL EDITION GAME ENGINE
+   Preserves the original royal bakery identity and progression.
+========================================================= */
+const GAME_KEY="pixaforge_cookie_emperor_v2";
+const LEGACY_KEYS=["pixaforge_cookie_emperor_v1"];
+const buildingDefs=[
+ {id:"bakery",name:"Tiny Bakery",icon:"🏠",desc:"A humble bakery and the foundation of your empire.",base:30,rate:.5,workers:1,build:300,life:7*86400},
+ {id:"farm",name:"Cookie Farm",icon:"🌾",desc:"Grow sweet ingredients for the royal kitchens.",base:250,rate:4,workers:2,build:600,life:7*86400},
+ {id:"oven",name:"Royal Oven",icon:"🔥",desc:"A mighty oven that keeps the kingdom baking.",base:1800,rate:24,workers:4,build:900,life:7*86400},
+ {id:"factory",name:"Cookie Factory",icon:"🏭",desc:"Bring industrial baking power to your realm.",base:12000,rate:130,workers:6,build:1200,life:7*86400},
+ {id:"mine",name:"Cookie Mine",icon:"⛏️",desc:"Mine rare sugar crystals and cookie minerals.",base:65000,rate:520,workers:9,build:1800,life:7*86400},
+ {id:"generator",name:"Enchanted Generator",icon:"⚡",desc:"Convert royal magic into endless baking energy.",base:190000,rate:1450,workers:13,build:2400,life:7*86400},
+ {id:"laboratory",name:"Royal Dessert Laboratory",icon:"🧪",desc:"The finest minds create extraordinary desserts.",base:450000,rate:3200,workers:18,build:3000,life:7*86400}
 ];
-
-const ACHIEVEMENTS = [
-    {
-        id: "firstCookie",
-        name: "First Batch",
-        icon: "🍪",
-        description: "Earn your first cookie.",
-        condition: s => s.totalEarned >= 1
-    },
-    {
-        id: "hundred",
-        name: "Cookie Collector",
-        icon: "🧺",
-        description: "Earn 100 cookies.",
-        condition: s => s.totalEarned >= 100
-    },
-    {
-        id: "thousand",
-        name: "Cookie Merchant",
-        icon: "💰",
-        description: "Earn 1,000 cookies.",
-        condition: s => s.totalEarned >= 1000
-    },
-    {
-        id: "tenThousand",
-        name: "Baking Business",
-        icon: "🏪",
-        description: "Earn 10,000 cookies.",
-        condition: s => s.totalEarned >= 10000
-    },
-    {
-        id: "firstBuilding",
-        name: "First Investment",
-        icon: "🏠",
-        description: "Complete your first building.",
-        condition: s => totalBuildings(s) >= 1
-    },
-    {
-        id: "tenBuildings",
-        name: "Building an Empire",
-        icon: "🏗️",
-        description: "Complete 10 buildings.",
-        condition: s => totalBuildings(s) >= 10
-    },
-    {
-        id: "firstWorker",
-        name: "The First Employee",
-        icon: "👷",
-        description: "Hire your first worker.",
-        condition: s => s.workers >= 1
-    },
-    {
-        id: "tenWorkers",
-        name: "Growing Workforce",
-        icon: "👥",
-        description: "Hire 10 workers.",
-        condition: s => s.workers >= 10
-    },
-    {
-        id: "firstUpgrade",
-        name: "Research Begins",
-        icon: "📜",
-        description: "Purchase your first upgrade.",
-        condition: s => s.upgrades.length >= 1
-    },
-    {
-        id: "levelFive",
-        name: "Rising Monarch",
-        icon: "👑",
-        description: "Reach empire level 5.",
-        condition: s => s.level >= 5
-    }
+const upgradeDefs=[
+ {id:"gloves",name:"Baker's Gloves",icon:"🧤",desc:"Double cookies earned from each click.",cost:150,effect:"click",value:2},
+ {id:"pin",name:"Royal Rolling Pin",icon:"🥖",desc:"Triple your click power.",cost:900,effect:"click",value:3},
+ {id:"recipe",name:"Grandmother's Recipe",icon:"📜",desc:"Increase all building production by 25%.",cost:2200,effect:"rate",value:1.25},
+ {id:"ovenFlame",name:"Eternal Oven Flame",icon:"🔥",desc:"Double production from every building.",cost:9000,effect:"rate",value:2},
+ {id:"sugar",name:"Refined Sugar",icon:"🍯",desc:"Increase click power by 5 times.",cost:18000,effect:"click",value:5},
+ {id:"workers",name:"Royal Work Charter",icon:"📋",desc:"Workers produce 30% more efficiently.",cost:45000,effect:"rate",value:1.3},
+ {id:"golden",name:"Golden Baking Tools",icon:"✨",desc:"Double all production again.",cost:125000,effect:"rate",value:2},
+ {id:"crown",name:"Emperor's Secret",icon:"👑",desc:"Increase click power by 10 times.",cost:300000,effect:"click",value:10}
 ];
-
-const RANKS = [
-    { level: 1, name: "APPRENTICE BAKER" },
-    { level: 2, name: "COOKIE MERCHANT" },
-    { level: 3, name: "MASTER BAKER" },
-    { level: 4, name: "DUKE OF DOUGH" },
-    { level: 5, name: "ROYAL GOVERNOR" },
-    { level: 7, name: "COOKIE MONARCH" },
-    { level: 10, name: "COOKIE EMPEROR" }
+const achievementDefs=[
+ {id:"first",name:"The First Crumb",desc:"Bake your first cookie.",icon:"🍪",test:s=>s.total>=1,reward:10},
+ {id:"hundred",name:"Baker's Dozen",desc:"Bake 100 lifetime cookies.",icon:"🥣",test:s=>s.total>=100,reward:35},
+ {id:"thousand",name:"Cookie Collector",desc:"Bake 1,000 lifetime cookies.",icon:"🫙",test:s=>s.total>=1000,reward:100},
+ {id:"estate",name:"Landowner",desc:"Own your first estate.",icon:"🏠",test:s=>s.buildings.length>=1,reward:100},
+ {id:"workers",name:"A Helping Hand",desc:"Hire 5 workers.",icon:"👥",test:s=>s.workers.population>=5,reward:150},
+ {id:"upgrade",name:"Royal Engineering",desc:"Purchase 3 upgrades.",icon:"⚒️",test:s=>s.upgrades.length>=3,reward:300},
+ {id:"tenk",name:"The Cookie Baron",desc:"Bake 10,000 lifetime cookies.",icon:"💰",test:s=>s.total>=10000,reward:600},
+ {id:"million",name:"Millionaire Baker",desc:"Bake 1,000,000 lifetime cookies.",icon:"🏆",test:s=>s.total>=1e6,reward:5000},
+ {id:"contracts",name:"Royal Supplier",desc:"Complete 3 royal contracts.",icon:"📜",test:s=>s.contractsCompleted>=3,reward:2500},
+ {id:"emperor",name:"Cookie Emperor",desc:"Reach the highest royal rank.",icon:"👑",test:s=>s.total>=1e9,reward:25000}
 ];
-
-const CONTRACTS = [
-    {
-        name: "The First Royal Order",
-        description: "Earn 100 cookies in total.",
-        target: 100,
-        type: "earned",
-        reward: 75
-    },
-    {
-        name: "Expand the Workforce",
-        description: "Hire 3 workers.",
-        target: 3,
-        type: "workers",
-        reward: 250
-    },
-    {
-        name: "A Growing Kingdom",
-        description: "Complete 3 buildings.",
-        target: 3,
-        type: "buildings",
-        reward: 500
-    },
-    {
-        name: "Royal Production",
-        description: "Reach 10 cookies per second.",
-        target: 10,
-        type: "production",
-        reward: 1500
-    },
-    {
-        name: "The Cookie Empire",
-        description: "Earn 10,000 cookies in total.",
-        target: 10000,
-        type: "earned",
-        reward: 5000
-    }
+const cosmeticDefs=[
+ {id:"cocoaCrown",name:"Cocoa Crown",icon:"👑",desc:"A crown fit for the ruler of cookies.",rarity:"rare",unlock:"Bake 1,000 cookies."},
+ {id:"goldenApron",name:"Golden Apron",icon:"🥇",desc:"The royal baker's finest apron.",rarity:"epic",unlock:"Own 5 buildings."},
+ {id:"sugarAura",name:"Sugar Sparkle",icon:"✨",desc:"A magical shimmer around your cookie.",rarity:"epic",unlock:"Collect 3 special cookies."},
+ {id:"emperorCape",name:"Emperor's Cape",icon:"🧥",desc:"The legendary royal cape.",rarity:"legendary",unlock:"Bake 1,000,000 cookies."}
 ];
-
-const ROYAL_EVENTS = [
-    {
-        name: "Golden Cookie Rush",
-        description: "Production doubled for 25 seconds!",
-        multiplier: 2,
-        duration: 25
-    },
-    {
-        name: "Royal Bakery Festival",
-        description: "Production tripled for 20 seconds!",
-        multiplier: 3,
-        duration: 20
-    },
-    {
-        name: "Cookie Storm",
-        description: "A cookie storm! Production doubled for 30 seconds!",
-        multiplier: 2,
-        duration: 30
-    }
+const specialCookieDefs=[
+ {id:"chocoChip",name:"Chocolate Chip Cookie",icon:"🍪",rarity:"common",desc:"A classic cookie with a little extra joy."},
+ {id:"goldenCookie",name:"Golden Cookie",icon:"🌟",rarity:"rare",desc:"A shiny cookie touched by royal fortune."},
+ {id:"moonCookie",name:"Moonlit Cookie",icon:"🌙",rarity:"epic",desc:"A rare treat baked beneath a silver moon."},
+ {id:"royalCookie",name:"Royal Jewel Cookie",icon:"💎",rarity:"legendary",desc:"A legendary cookie worthy of the throne."}
 ];
-
-
-/* =========================
-   4. GAME STATE
-========================= */
-
-function defaultState() {
-    return {
-        cookies: 0,
-        totalEarned: 0,
-        clickPower: 1,
-        level: 1,
-
-        buildings: {},
-        workers: 0,
-        workerSkill: 1,
-
-        upgrades: [],
-        achievements: [],
-
-        construction: null,
-
-        contractIndex: 0,
-        completedContracts: [],
-
-        activeTab: "buildings",
-
-        lastSavedAt: Date.now()
-    };
-}
-
-let state = defaultState();
-
-let gameInterval = null;
-let saveInterval = null;
-let eventInterval = null;
-
-let gameIsRunning = false;
-
-let activeEvent = null;
-let lastEventCheck = Date.now();
-let lastRender = 0;
-let notifiedContractIndex = null;
-
-
-/* =========================
-   5. HELPERS
-========================= */
-
-function totalBuildings(s = state) {
-    return Object.values(s.buildings)
-        .reduce((sum, amount) => sum + amount, 0);
-}
-
-function totalCookies(number) {
-    if (!Number.isFinite(number)) return "0";
-
-    if (number < 1000) {
-        return number % 1 === 0
-            ? Math.floor(number).toString()
-            : number.toFixed(1);
-    }
-
-    const units = [
-        [1e3, "K"],
-        [1e6, "M"],
-        [1e9, "B"],
-        [1e12, "T"],
-        [1e15, "Qa"],
-        [1e18, "Qi"]
-    ];
-
-    for (let i = units.length - 1; i >= 0; i--) {
-        if (number >= units[i][0]) {
-            return (number / units[i][0]).toFixed(2) + units[i][1];
-        }
-    }
-
-    return Math.floor(number).toString();
-}
-
-function formatTime(seconds) {
-    seconds = Math.max(0, Math.ceil(seconds));
-
-    const minutes = Math.floor(seconds / 60);
-    const remaining = seconds % 60;
-
-    return `${String(minutes).padStart(2, "0")}:${String(remaining).padStart(2, "0")}`;
-}
-
-function showToast(message) {
-    if (!toastContainer) return;
-
-    const toast = document.createElement("div");
-
-    toast.className = "game-toast";
-    toast.textContent = message;
-
-    toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(15px)";
-
-        setTimeout(() => toast.remove(), 300);
-    }, 2600);
-}
-
-
-/* =========================
-   6. SAVE AND LOAD
-========================= */
-
-function saveGame() {
-    try {
-        state.lastSavedAt = Date.now();
-
-        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-
-        if (saveIndicator) {
-            saveIndicator.innerHTML = "<i></i> SAVED LOCALLY";
-        }
-    } catch (error) {
-        console.error("Save failed:", error);
-
-        if (saveIndicator) {
-            saveIndicator.textContent = "SAVE ERROR";
-        }
-    }
-}
-
-function loadGame() {
-    try {
-        const raw = localStorage.getItem(SAVE_KEY);
-
-        if (!raw) {
-            state = defaultState();
-            return;
-        }
-
-        const parsed = JSON.parse(raw);
-
-        if (!parsed || typeof parsed !== "object") {
-            throw new Error("Invalid save data.");
-        }
-
-        state = {
-            ...defaultState(),
-            ...parsed,
-
-            buildings: {
-                ...defaultState().buildings,
-                ...(parsed.buildings || {})
-            },
-
-            upgrades: Array.isArray(parsed.upgrades)
-                ? parsed.upgrades.filter(id =>
-                    UPGRADES.some(item => item.id === id)
-                )
-                : [],
-
-            achievements: Array.isArray(parsed.achievements)
-                ? parsed.achievements.filter(id =>
-                    ACHIEVEMENTS.some(item => item.id === id)
-                )
-                : [],
-
-            completedContracts: Array.isArray(parsed.completedContracts)
-                ? parsed.completedContracts.filter(index =>
-                    Number.isInteger(index) &&
-                    index >= 0 &&
-                    index < CONTRACTS.length
-                )
-                : []
-        };
-
-        state.cookies = Math.max(0, Number(state.cookies) || 0);
-        state.totalEarned = Math.max(0, Number(state.totalEarned) || 0);
-        state.clickPower = Math.max(1, Number(state.clickPower) || 1);
-        state.level = Math.max(1, Number(state.level) || 1);
-        state.workers = Math.max(0, Math.floor(Number(state.workers) || 0));
-        state.workerSkill = Math.max(1, Math.floor(Number(state.workerSkill) || 1));
-
-        for (const building of BUILDINGS) {
-            state.buildings[building.id] =
-                Math.max(0, Math.floor(Number(state.buildings[building.id]) || 0));
-        }
-
-        state.contractIndex = Math.max(
-            0,
-            Math.min(
-                CONTRACTS.length,
-                Math.floor(Number(state.contractIndex) || 0)
-            )
-        );
-
-        if (
-            state.construction &&
-            (
-                !BUILDINGS.some(b => b.id === state.construction.buildingId) ||
-                !Number.isFinite(state.construction.completesAt) ||
-                !Number.isFinite(state.construction.duration)
-            )
-        ) {
-            state.construction = null;
-        }
-
-        if (!["buildings", "workforce", "upgrades", "achievements"].includes(state.activeTab)) {
-            state.activeTab = "buildings";
-        }
-
-    } catch (error) {
-        console.error("Load failed:", error);
-
-        state = defaultState();
-        showToast("Could not read the previous save. New save started.");
-    }
-}
-
-
-/* =========================
-   7. OFFLINE PROGRESS
-========================= */
-
-function applyOfflineProgress() {
-    const previousTime = Number(state.lastSavedAt) || Date.now();
-    const now = Date.now();
-
-    const elapsed = Math.max(
-        0,
-        Math.min((now - previousTime) / 1000, 8 * 60 * 60)
-    );
-
-    // Only count offline production after the construction
-    // has actually completed.
-    let productiveSeconds = elapsed;
-
-    if (state.construction) {
-        const completionTime = state.construction.completesAt;
-        const offlinePeriodStart = now - elapsed * 1000;
-
-        if (completionTime > now) {
-            productiveSeconds = 0;
-        } else if (completionTime > offlinePeriodStart) {
-            productiveSeconds = Math.max(
-                0,
-                (now - completionTime) / 1000
-            );
-        }
-
-        completeConstructionIfReady();
-    }
-
-    const offlineProduction =
-        getProductionPerSecond() * productiveSeconds * 0.5;
-
-    if (offlineProduction > 0) {
-        state.cookies += offlineProduction;
-        state.totalEarned += offlineProduction;
-
-        showToast(
-            `Welcome back! Your kingdom earned ${totalCookies(offlineProduction)} cookies.`
-        );
-    }
-
-    checkLevelUp();
-    checkAchievements();
-    checkContracts();
-
-    saveGame();
-}
-
-
-/* =========================
-   8. BUILDING ECONOMY
-========================= */
-
-function getBuildingCost(building) {
-    const owned = state.buildings[building.id] || 0;
-
-    return Math.floor(
-        building.baseCost * Math.pow(1.16, owned)
-    );
-}
-
-function getBuildingMultiplier() {
-    return state.upgrades.reduce((multiplier, id) => {
-        const upgrade = UPGRADES.find(item => item.id === id);
-
-        if (upgrade?.type === "production") {
-            return multiplier * upgrade.multiplier;
-        }
-
-        return multiplier;
-    }, 1);
-}
-
-function getWorkerMultiplier() {
-    return 1 + (state.workerSkill - 1) * 0.2;
-}
-
-function getStaffing() {
-    let workersRemaining = state.workers;
-    const result = {};
-
-    for (const building of BUILDINGS) {
-        const owned = state.buildings[building.id] || 0;
-        const required = owned * building.workersRequired;
-
-        const assigned = Math.min(required, workersRemaining);
-
-        workersRemaining -= assigned;
-
-        result[building.id] = {
-            assigned,
-            required,
-            ratio: required > 0 ? assigned / required : 0
-        };
-    }
-
-    return result;
-}
-
-function getProductionPerSecond() {
-    const staffing = getStaffing();
-    const buildingMultiplier = getBuildingMultiplier();
-    const workerMultiplier = getWorkerMultiplier();
-
-    let production = 0;
-
-    for (const building of BUILDINGS) {
-        const owned = state.buildings[building.id] || 0;
-        const staffRatio = staffing[building.id].ratio;
-
-        production +=
-            owned *
-            building.production *
-            staffRatio *
-            buildingMultiplier *
-            workerMultiplier;
-    }
-
-    if (activeEvent && activeEvent.endsAt > Date.now()) {
-        production *= activeEvent.multiplier;
-    }
-
-    return production;
-}
-
-
-/* =========================
-   9. CONSTRUCTION SYSTEM
-========================= */
-
-function startConstruction(buildingId) {
-    const building = BUILDINGS.find(item => item.id === buildingId);
-
-    if (!building) return;
-
-    if (state.construction) {
-        showToast("Your construction team is already busy!");
-        return;
-    }
-
-    const cost = getBuildingCost(building);
-
-    if (state.cookies < cost) {
-        showToast("Not enough cookies for construction!");
-        return;
-    }
-
-    const owned = state.buildings[building.id] || 0;
-
-    const duration = Math.floor(
-        building.buildTime * (1 + owned * 0.15)
-    );
-
-    state.cookies -= cost;
-
-    state.construction = {
-        buildingId,
-        startedAt: Date.now(),
-        completesAt: Date.now() + duration * 1000,
-        duration
-    };
-
-    showToast(`${building.name} construction started!`);
-
-    updateGame();
-}
-
-function completeConstructionIfReady() {
-    if (!state.construction) return false;
-
-    if (Date.now() < state.construction.completesAt) {
-        return false;
-    }
-
-    const building = BUILDINGS.find(
-        item => item.id === state.construction.buildingId
-    );
-
-    if (!building) {
-        state.construction = null;
-        return false;
-    }
-
-    state.buildings[building.id] =
-        (state.buildings[building.id] || 0) + 1;
-
-    state.construction = null;
-
-    showToast(`🏗️ ${building.name} is complete! Hire workers to operate it.`);
-
-    checkAchievements();
-    checkContracts();
-
-    return true;
-}
-
-function getConstructionRemaining() {
-    if (!state.construction) return 0;
-
-    return Math.max(
-        0,
-        (state.construction.completesAt - Date.now()) / 1000
-    );
-}
-
-
-/* =========================
-   10. WORKFORCE SYSTEM
-========================= */
-
-function getWorkerHireCost() {
-    return Math.floor(
-        50 * Math.pow(1.35, state.workers)
-    );
-}
-
-function hireWorker() {
-    const cost = getWorkerHireCost();
-
-    if (state.cookies < cost) {
-        showToast("Not enough cookies to hire a worker!");
-        return;
-    }
-
-    state.cookies -= cost;
-    state.workers++;
-
-    showToast("👷 A new worker joined your kingdom!");
-
-    checkAchievements();
-    checkContracts();
-    updateGame();
-}
-
-function getTrainingCost() {
-    return Math.floor(
-        500 * Math.pow(2.1, state.workerSkill - 1)
-    );
-}
-
-function trainWorkers() {
-    if (state.workers === 0) {
-        showToast("Hire workers before training them!");
-        return;
-    }
-
-    const cost = getTrainingCost();
-
-    if (state.cookies < cost) {
-        showToast("Not enough cookies for training!");
-        return;
-    }
-
-    state.cookies -= cost;
-    state.workerSkill++;
-
-    showToast(`🎓 Workforce training level ${state.workerSkill}!`);
-
-    updateGame();
-}
-
-function getWorkerSummary() {
-    const staffing = getStaffing();
-
-    let required = 0;
-    let assigned = 0;
-
-    Object.values(staffing).forEach(item => {
-        required += item.required;
-        assigned += item.assigned;
-    });
-
-    return {
-        total: state.workers,
-        required,
-        assigned,
-        idle: Math.max(0, state.workers - assigned),
-        shortage: Math.max(0, required - assigned)
-    };
-}
-
-
-/* =========================
-   11. UPGRADES
-========================= */
-
-function buyUpgrade(id) {
-    const upgrade = UPGRADES.find(item => item.id === id);
-
-    if (!upgrade || state.upgrades.includes(id)) return;
-
-    if (state.cookies < upgrade.cost) {
-        showToast("Not enough cookies!");
-        return;
-    }
-
-    state.cookies -= upgrade.cost;
-    state.upgrades.push(id);
-
-    if (upgrade.type === "click") {
-        state.clickPower *= upgrade.multiplier;
-    }
-
-    showToast(`${upgrade.name} unlocked!`);
-
-    checkAchievements();
-    updateGame();
-}
-
-
-/* =========================
-   12. CLICKING AND PRODUCTION
-========================= */
-
-function earnCookies(amount) {
-    if (!Number.isFinite(amount) || amount <= 0) return;
-
-    state.cookies += amount;
-    state.totalEarned += amount;
-
-    checkLevelUp();
-    checkAchievements();
-    checkContracts();
-}
-
-function clickCookie(event) {
-    earnCookies(state.clickPower);
-
-    const stage = document.querySelector(".cookie-stage");
-
-    if (stage && giantCookie) {
-        const particle = document.createElement("span");
-
-        particle.className = "float-cookie";
-        particle.textContent = `+${totalCookies(state.clickPower)}`;
-
-        const rect = stage.getBoundingClientRect();
-
-        const hasPointerPosition =
-            event.clientX !== 0 || event.clientY !== 0;
-
-        particle.style.left = hasPointerPosition
-            ? `${event.clientX - rect.left}px`
-            : "50%";
-
-        particle.style.top = hasPointerPosition
-            ? `${event.clientY - rect.top}px`
-            : "45%";
-
-        stage.appendChild(particle);
-
-        setTimeout(() => particle.remove(), 900);
-
-        giantCookie.animate(
-            [
-                { transform: "scale(1)" },
-                { transform: "scale(.92)" },
-                { transform: "scale(1)" }
-            ],
-            { duration: 130 }
-        );
-    }
-
-    updateDashboard();
-}
-
-function gameTick() {
-    const now = Date.now();
-
-    completeConstructionIfReady();
-
-    if (activeEvent && now >= activeEvent.endsAt) {
-        activeEvent = null;
-
-        eventBanner?.classList.remove("active-event");
-
-        if (eventText) {
-            eventText.textContent = "The kingdom awaits its next royal event.";
-        }
-
-        updateDashboard();
-    }
-
-    const production = getProductionPerSecond();
-
-    if (production > 0) {
-        earnCookies(production / 10);
-    }
-
-    updateDashboard();
-
-    if (now - lastRender >= 1000) {
-        renderStore();
-        lastRender = now;
-    }
-}
-
-
-/* =========================
-   13. ROYAL EVENTS
-========================= */
-
-function checkRoyalEvents() {
-    const now = Date.now();
-
-    if (activeEvent) return;
-
-    if (now - lastEventCheck < 90 * 1000) return;
-
-    lastEventCheck = now;
-
-    // 35% chance of an event after the waiting period.
-    if (Math.random() > 0.35) return;
-
-    const event =
-        ROYAL_EVENTS[Math.floor(Math.random() * ROYAL_EVENTS.length)];
-
-    activeEvent = {
-        ...event,
-        endsAt: now + event.duration * 1000
-    };
-
-    eventBanner?.classList.add("active-event");
-
-    if (eventText) {
-        eventText.textContent = event.description;
-    }
-
-    showToast(`📯 Royal event: ${event.name}!`);
-
-    updateDashboard();
-}
-
-
-/* =========================
-   14. LEVELS AND RANKS
-========================= */
-
-function getLevelRequirement(level) {
-    return Math.floor(100 * Math.pow(level, 1.6));
-}
-
-function checkLevelUp() {
-    while (state.totalEarned >= getLevelRequirement(state.level)) {
-        state.level++;
-        showToast(`👑 Empire level ${state.level} reached!`);
-    }
-}
-
-function getCurrentRank() {
-    let rank = RANKS[0].name;
-
-    for (const item of RANKS) {
-        if (state.level >= item.level) {
-            rank = item.name;
-        }
-    }
-
-    return rank;
-}
-
-
-/* =========================
-   15. ACHIEVEMENTS
-========================= */
-
-function checkAchievements() {
-    for (const achievement of ACHIEVEMENTS) {
-        if (state.achievements.includes(achievement.id)) continue;
-
-        if (achievement.condition(state)) {
-            state.achievements.push(achievement.id);
-
-            showToast(`🏆 Achievement unlocked: ${achievement.name}`);
-        }
-    }
-
-    if (achievementCountElement) {
-        achievementCountElement.textContent =
-            `${state.achievements.length} / ${ACHIEVEMENTS.length}`;
-    }
-}
-
-
-/* =========================
-   16. ROYAL CONTRACTS
-========================= */
-
-function getContractProgress(contract) {
-    switch (contract.type) {
-        case "earned":
-            return state.totalEarned;
-
-        case "workers":
-            return state.workers;
-
-        case "buildings":
-            return totalBuildings();
-
-        case "production":
-            return getProductionPerSecond();
-
-        default:
-            return 0;
-    }
-}
-
-function checkContracts() {
-    const index = state.contractIndex;
-    const contract = CONTRACTS[index];
-
-    if (!contract) return;
-
-    if (state.completedContracts.includes(index)) return;
-
-    if (getContractProgress(contract) >= contract.target) {
-        // Prevent the same completion notification from
-        // appearing repeatedly during the game loop.
-        if (notifiedContractIndex !== index) {
-            notifiedContractIndex = index;
-            showToast("📜 Royal contract completed! Claim your reward.");
-        }
-    }
-}
-
-function claimContract() {
-    const index = state.contractIndex;
-    const contract = CONTRACTS[index];
-
-    if (!contract) {
-        showToast("All current royal contracts are complete!");
-        return;
-    }
-
-    if (state.completedContracts.includes(index)) return;
-
-    if (getContractProgress(contract) < contract.target) {
-        showToast("Complete the contract first!");
-        return;
-    }
-
-    state.cookies += contract.reward;
-    state.completedContracts.push(index);
-    state.contractIndex++;
-
-    notifiedContractIndex = null;
-
-    showToast(`📜 Royal reward: ${totalCookies(contract.reward)} cookies!`);
-
-    updateGame();
-}
-
-
-/* =========================
-   17. BUILDINGS DISPLAY
-========================= */
-
-function renderBuildings() {
-    const staffing = getStaffing();
-
-    let html = `<div class="store-heading">YOUR ROYAL BUILDINGS</div>`;
-
-    if (state.construction) {
-        const building = BUILDINGS.find(
-            b => b.id === state.construction.buildingId
-        );
-
-        if (building) {
-            const remaining = getConstructionRemaining();
-
-            const progress = Math.min(
-                100,
-                Math.max(
-                    0,
-                    100 * (1 - remaining / state.construction.duration)
-                )
-            );
-
-            html += `
-                <div class="construction-panel">
-                    <h4>🏗️ CONSTRUCTION IN PROGRESS</h4>
-                    <p>${building.name} is being built by your construction team.</p>
-
-                    <div class="construction-timer">
-                        <span>COMPLETION TIME</span>
-                        <strong>${formatTime(remaining)}</strong>
-                    </div>
-
-                    <div class="construction-track">
-                        <div style="width:${progress}%"></div>
-                    </div>
-                </div>
-            `;
-        }
-    } else {
-        html += `
-            <div class="construction-panel">
-                <h4>🏗️ CONSTRUCTION YARD</h4>
-                <p>Your construction team is available. Choose a building to start your next project.</p>
-            </div>
-        `;
-    }
-
-    BUILDINGS.forEach(building => {
-        const owned = state.buildings[building.id] || 0;
-        const cost = getBuildingCost(building);
-        const staff = staffing[building.id];
-
-        const canAfford = state.cookies >= cost;
-        const busy = Boolean(state.construction);
-
-        const constructionTime = Math.floor(
-            building.buildTime * (1 + owned * 0.15)
-        );
-
-        const buildingProduction =
-            building.production *
-            getBuildingMultiplier() *
-            getWorkerMultiplier();
-
-        html += `
-            <article class="building-item">
-                <div class="building-icon">${building.icon}</div>
-
-                <div class="building-details">
-                    <strong>${building.name} ×${owned}</strong>
-                    <p>${building.description}</p>
-
-                    <small>
-                        ${formatTime(constructionTime)} BUILD TIME
-                    </small>
-
-                    <div class="staff-line">
-                        👷 ${staff.assigned}/${staff.required} WORKERS
-                        · ${staff.ratio === 1 ? "FULLY STAFFED" : "NEEDS STAFF"}
-                    </div>
-
-                    <small>
-                        +${totalCookies(buildingProduction * staff.ratio)}
-                        COOKIES / SEC
-                    </small>
-                </div>
-
-                <button
-                    class="buy-button"
-                    data-build="${building.id}"
-                    ${(!canAfford || busy) ? "disabled" : ""}
-                >
-                    ${busy ? "BUSY" : `🍪 ${totalCookies(cost)}`}
-                </button>
-            </article>
-        `;
-    });
-
-    storeContent.innerHTML = html;
-}
-
-
-/* =========================
-   18. WORKFORCE DISPLAY
-========================= */
-
-function renderWorkforce() {
-    const summary = getWorkerSummary();
-
-    const hireCost = getWorkerHireCost();
-    const trainingCost = getTrainingCost();
-
-    const contract = CONTRACTS[state.contractIndex];
-
-    let contractHTML = "";
-
-    if (contract) {
-        const contractProgress = getContractProgress(contract);
-
-        const progress = Math.min(
-            100,
-            contractProgress / contract.target * 100
-        );
-
-        const completed = contractProgress >= contract.target;
-
-        contractHTML = `
-            <div class="store-heading">ROYAL CONTRACT</div>
-
-            <div class="contract-card">
-                <strong>📜 ${contract.name}</strong>
-                <p>${contract.description}</p>
-
-                <div class="contract-progress">
-                    <div style="width:${progress}%"></div>
-                </div>
-
-                <small>
-                    ${totalCookies(contractProgress)}
-                    / ${totalCookies(contract.target)}
-                    · REWARD: ${totalCookies(contract.reward)} COOKIES
-                </small>
-
-                <button
-                    class="action-button"
-                    id="claimContract"
-                    ${completed ? "" : "disabled"}
-                    style="width:100%;margin-top:12px"
-                >
-                    ${completed ? "CLAIM ROYAL REWARD" : "CONTRACT IN PROGRESS"}
-                </button>
-            </div>
-        `;
-    } else {
-        contractHTML = `
-            <div class="contract-card">
-                <strong>🏆 ROYAL CONTRACTS COMPLETED</strong>
-                <p>Your kingdom has completed every available contract.</p>
-            </div>
-        `;
-    }
-
-    storeContent.innerHTML = `
-        <div class="store-heading">KINGDOM WORKFORCE</div>
-
-        <div class="worker-card">
-            <div class="worker-icon">👷</div>
-
-            <div class="worker-details">
-                <strong>${state.workers} Hired Workers</strong>
-                <p>Workers operate your completed buildings.</p>
-                <small>${summary.assigned} ASSIGNED · ${summary.idle} IDLE</small>
-            </div>
-
-            <button class="action-button" id="hireWorker"
-                ${state.cookies < hireCost ? "disabled" : ""}>
-                HIRE · ${totalCookies(hireCost)}
-            </button>
-        </div>
-
-        <div class="worker-card">
-            <div class="worker-icon">📊</div>
-
-            <div class="worker-details">
-                <strong>Workforce Capacity</strong>
-                <p>${summary.assigned} of ${summary.required} required positions filled.</p>
-                <small>${summary.shortage} MORE WORKERS NEEDED</small>
-            </div>
-        </div>
-
-        <div class="worker-card">
-            <div class="worker-icon">🎓</div>
-
-            <div class="worker-details">
-                <strong>Worker Training · Level ${state.workerSkill}</strong>
-                <p>Each training level increases worker productivity by 20%.</p>
-                <small>CURRENT BONUS: +${(state.workerSkill - 1) * 20}%</small>
-            </div>
-
-            <button class="action-button" id="trainWorkers"
-                ${state.workers === 0 || state.cookies < trainingCost ? "disabled" : ""}>
-                TRAIN · ${totalCookies(trainingCost)}
-            </button>
-        </div>
-
-        <div class="store-heading">HOW STAFFING WORKS</div>
-
-        <div class="contract-card">
-            <strong>👥 Automatic Staff Assignment</strong>
-            <p>
-                Workers are assigned to buildings in order, starting with
-                the Tiny Bakery. Every building has a different staffing requirement.
-                An understaffed building only produces according to its staffing ratio.
-            </p>
-        </div>
-
-        ${contractHTML}
-    `;
-}
-
-
-/* =========================
-   19. UPGRADES DISPLAY
-========================= */
-
-function renderUpgrades() {
-    let html = `<div class="store-heading">ROYAL RESEARCH & IMPROVEMENTS</div>`;
-    let available = 0;
-
-    UPGRADES.forEach(upgrade => {
-        if (state.upgrades.includes(upgrade.id)) return;
-
-        available++;
-
-        html += `
-            <article class="upgrade-item">
-                <div class="upgrade-icon">${upgrade.icon}</div>
-
-                <div class="upgrade-details">
-                    <strong>${upgrade.name}</strong>
-                    <p>${upgrade.description}</p>
-                </div>
-
-                <button
-                    class="upgrade-buy"
-                    data-upgrade="${upgrade.id}"
-                    ${state.cookies < upgrade.cost ? "disabled" : ""}
-                >
-                    ${totalCookies(upgrade.cost)}
-                </button>
-            </article>
-        `;
-    });
-
-    if (!available) {
-        html += `<div class="empty-store">All current upgrades unlocked!</div>`;
-    }
-
-    storeContent.innerHTML = html;
-}
-
-
-/* =========================
-   20. ACHIEVEMENTS DISPLAY
-========================= */
-
-function renderAchievements() {
-    let html = `<div class="store-heading">ROYAL TROPHY ROOM</div>`;
-
-    ACHIEVEMENTS.forEach(achievement => {
-        const unlocked = state.achievements.includes(achievement.id);
-
-        html += `
-            <article class="achievement-item ${unlocked ? "unlocked" : "locked"}">
-                <div class="achievement-icon">
-                    ${unlocked ? achievement.icon : "🔒"}
-                </div>
-
-                <div class="achievement-details">
-                    <strong>${achievement.name}</strong>
-                    <p>${achievement.description}</p>
-                </div>
-
-                <span>${unlocked ? "✓" : "—"}</span>
-            </article>
-        `;
-    });
-
-    storeContent.innerHTML = html;
-}
-
-
-/* =========================
-   21. STORE ROUTER
-========================= */
-
-function renderStore() {
-    if (!storeContent) return;
-
-    const activeTab =
-        document.querySelector(".store-tab.active")?.dataset.tab ||
-        state.activeTab ||
-        "buildings";
-
-    if (activeTab === "buildings") renderBuildings();
-    if (activeTab === "workforce") renderWorkforce();
-    if (activeTab === "upgrades") renderUpgrades();
-    if (activeTab === "achievements") renderAchievements();
-}
-
-
-/* =========================
-   22. DASHBOARD
-========================= */
-
-function updateDashboard() {
-    if (
-        !cookieBalanceElement ||
-        !cookieCpsElement ||
-        !empireLevelElement ||
-        !empireRankElement
-    ) return;
-
-    cookieBalanceElement.textContent = totalCookies(state.cookies);
-    cookieCpsElement.textContent = totalCookies(getProductionPerSecond());
-
-    empireLevelElement.textContent = state.level;
-    empireRankElement.textContent = getCurrentRank();
-
-    if (clickPowerElement) {
-        clickPowerElement.textContent =
-            `${totalCookies(state.clickPower)} COOKIE${state.clickPower === 1 ? "" : "S"}`;
-    }
-
-    if (achievementCountElement) {
-        achievementCountElement.textContent =
-            `${state.achievements.length} / ${ACHIEVEMENTS.length}`;
-    }
-
-    const requirement = getLevelRequirement(state.level);
-
-    const previous = state.level === 1
-        ? 0
-        : getLevelRequirement(state.level - 1);
-
-    const progress = Math.max(0, state.totalEarned - previous);
-    const range = requirement - previous;
-
-    const percentage = Math.min(100, progress / range * 100);
-
-    if (levelProgressBar) {
-        levelProgressBar.style.width = `${percentage}%`;
-    }
-
-    if (levelProgressText) {
-        levelProgressText.textContent =
-            `${totalCookies(progress)} / ${totalCookies(range)}`;
-    }
-
-    const buildings = totalBuildings();
-
-    if (buildings >= 10) {
-        kingdomTitleElement.textContent = "The Royal Cookie Empire";
-        kingdomQuoteElement.textContent = '"A kingdom built one cookie at a time."';
-    } else if (buildings >= 4) {
-        kingdomTitleElement.textContent = "The Growing Bakery";
-        kingdomQuoteElement.textContent = '"The smell of success is in the oven."';
-    } else if (buildings >= 1) {
-        kingdomTitleElement.textContent = "The Village Bakery";
-        kingdomQuoteElement.textContent = '"Your first investment has begun."';
-    } else {
-        kingdomTitleElement.textContent = "The First Bakery";
-        kingdomQuoteElement.textContent = '"Every empire begins with one batch."';
-    }
-}
-
-function updateGame() {
-    updateDashboard();
-    renderStore();
-    checkContracts();
-    saveGame();
-}
-
-
-/* =========================
-   23. GAME OPEN / CLOSE
-========================= */
-
-function openGame() {
-    if (!gameOverlay) return;
-
-    gameOverlay.classList.add("open");
-    gameOverlay.setAttribute("aria-hidden", "false");
-
-    document.body.classList.add("game-open");
-
-    updateGame();
-    startGame();
-}
-
-function closeGame() {
-    stopGame();
-
-    gameOverlay?.classList.remove("open");
-    gameOverlay?.setAttribute("aria-hidden", "true");
-
-    document.body.classList.remove("game-open");
-
-    settingsModal?.classList.remove("open");
-    settingsModal?.setAttribute("aria-hidden", "true");
-}
-
-document.querySelectorAll(".play-game").forEach(button => {
-    button.addEventListener("click", openGame);
-});
-
-closeGameButton?.addEventListener("click", closeGame);
-
-
-/* =========================
-   24. GAME LOOP CONTROL
-========================= */
-
-function startGame() {
-    if (gameIsRunning) return;
-
-    gameIsRunning = true;
-    lastEventCheck = Date.now();
-
-    gameInterval = setInterval(gameTick, 100);
-    saveInterval = setInterval(saveGame, 5000);
-    eventInterval = setInterval(checkRoyalEvents, 5000);
-}
-
-function stopGame() {
-    gameIsRunning = false;
-
-    clearInterval(gameInterval);
-    clearInterval(saveInterval);
-    clearInterval(eventInterval);
-
-    gameInterval = null;
-    saveInterval = null;
-    eventInterval = null;
-
-    saveGame();
-}
-
-
-/* =========================
-   25. STORE BUTTON ACTIONS
-========================= */
-
-storeTabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-        storeTabs.forEach(item => item.classList.remove("active"));
-
-        tab.classList.add("active");
-        state.activeTab = tab.dataset.tab;
-
-        renderStore();
-        saveGame();
-    });
-});
-
-storeContent?.addEventListener("click", event => {
-    const target = event.target;
-
-    if (!(target instanceof Element)) return;
-
-    const buildButton = target.closest("[data-build]");
-    const upgradeButton = target.closest("[data-upgrade]");
-
-    if (buildButton) {
-        startConstruction(buildButton.dataset.build);
-    }
-
-    if (upgradeButton) {
-        buyUpgrade(upgradeButton.dataset.upgrade);
-    }
-
-    if (target.closest("#hireWorker")) {
-        hireWorker();
-    }
-
-    if (target.closest("#trainWorkers")) {
-        trainWorkers();
-    }
-
-    if (target.closest("#claimContract")) {
-        claimContract();
-    }
-});
-
-giantCookie?.addEventListener("click", clickCookie);
-
-
-/* =========================
-   26. SETTINGS
-========================= */
-
-function closeSettings() {
-    settingsModal?.classList.remove("open");
-    settingsModal?.setAttribute("aria-hidden", "true");
-}
-
-gameSettingsButton?.addEventListener("click", () => {
-    settingsModal?.classList.add("open");
-    settingsModal?.setAttribute("aria-hidden", "false");
-});
-
-closeSettingsButton?.addEventListener("click", closeSettings);
-settingsDoneButton?.addEventListener("click", closeSettings);
-
-settingsModal?.addEventListener("click", event => {
-    if (event.target === settingsModal) {
-        closeSettings();
-    }
-});
-
-
-/* =========================
-   27. RESET GAME
-========================= */
-
-resetGameButton?.addEventListener("click", () => {
-    const confirmed = confirm(
-        "Reset your entire Cookie Emperor kingdom? This cannot be undone."
-    );
-
-    if (!confirmed) return;
-
-    state = defaultState();
-    activeEvent = null;
-    notifiedContractIndex = null;
-
-    try {
-        localStorage.removeItem(SAVE_KEY);
-    } catch (error) {
-        console.error("Could not remove save:", error);
-        showToast("Could not clear the browser save.");
-    }
-
-    storeTabs.forEach(tab => {
-        tab.classList.toggle(
-            "active",
-            tab.dataset.tab === "buildings"
-        );
-    });
-
-    state.activeTab = "buildings";
-
-    eventBanner?.classList.remove("active-event");
-
-    if (eventText) {
-        eventText.textContent = "The kingdom awaits its emperor.";
-    }
-
-    showToast("Your kingdom has been reset.");
-
-    updateGame();
-});
-
-
-/* =========================
-   28. KEYBOARD SUPPORT
-========================= */
-
-document.addEventListener("keydown", event => {
-    if (event.key !== "Escape") return;
-
-    if (settingsModal?.classList.contains("open")) {
-        closeSettings();
-    } else if (gameOverlay?.classList.contains("open")) {
-        closeGame();
-    }
-});
-
-
-/* =========================
-   29. INITIALIZE GAME
-========================= */
-
+const rankDefs=[{name:"NOVICE BAKER",at:0},{name:"APPRENTICE BAKER",at:100},{name:"MASTER BAKER",at:1000},{name:"BAKERY BARON",at:10000},{name:"COOKIE NOBLE",at:100000},{name:"DUKE OF DESSERTS",at:1e6},{name:"COOKIE MONARCH",at:1e7},{name:"COOKIE EMPEROR",at:1e9}];
+const contractDefs=[
+ {id:"batch",name:"The Royal Breakfast",desc:"Deliver 250 cookies to the royal kitchen.",goal:250,reward:120},
+ {id:"harvest",name:"Harvest Festival",desc:"Bake 2,000 cookies for the village festival.",goal:2000,reward:650},
+ {id:"grandOrder",name:"The Grand Banquet",desc:"Bake 15,000 cookies for the palace.",goal:15000,reward:4000},
+ {id:"royalStock",name:"Royal Stockpile",desc:"Bake 100,000 cookies for winter stores.",goal:100000,reward:18000},
+ {id:"emperorTable",name:"The Emperor's Table",desc:"Bake 1,000,000 cookies for the royal feast.",goal:1000000,reward:100000}
+];
+const defaultGame=()=>({cookies:0,total:0,runTotal:0,clickPower:1,buildings:[],upgrades:[],workers:{population:0,trained:0},inventory:{},cosmetics:[],equipped:null,notifications:[],readNotifications:[],claimedAchievements:[],claimedQuests:[],contracts:{},contractsCompleted:0,lastTime:Date.now(),createdAt:Date.now(),sound:false,stats:{clicks:0,spent:0,playSeconds:0,buildingsBought:0,eventsWon:0,daysPlayed:0,prestige:0},daily:{lastClaim:0,streak:0},crowns:0,settings:{floating:true,reduced:false},event:null,eventAt:0,quests:{daily:Date.now()}});
+let gameState=defaultGame(),activeGameTab="buildings",soundContext=null,lastTick=performance.now(),lastAutosave=Date.now();
+function normalizeGame(saved){const base=defaultGame();const s={...base,...saved};s.quests={...base.quests,...(saved.quests||{})};if(saved.runTotal==null)s.runTotal=Number(saved.total)||0;s.buildings=Array.isArray(saved.buildings)?saved.buildings.map(b=>({...b})):[];s.upgrades=Array.isArray(saved.upgrades)?saved.upgrades:[];s.workers={...base.workers,...(saved.workers||{})};s.inventory={...(saved.inventory||{})};s.cosmetics=Array.isArray(saved.cosmetics)?saved.cosmetics:[];s.notifications=Array.isArray(saved.notifications)?saved.notifications:[];s.readNotifications=Array.isArray(saved.readNotifications)?saved.readNotifications:[];s.claimedAchievements=Array.isArray(saved.claimedAchievements)?saved.claimedAchievements:[];s.claimedQuests=Array.isArray(saved.claimedQuests)?saved.claimedQuests:[];s.contracts={...(saved.contracts||{})};s.stats={...base.stats,...(saved.stats||{})};s.daily={...base.daily,...(saved.daily||{})};s.settings={...base.settings,...(saved.settings||{})};return s}
+function loadGame(){let saved=null;try{saved=JSON.parse(localStorage.getItem(GAME_KEY)||"null");if(!saved){for(const key of LEGACY_KEYS){const old=JSON.parse(localStorage.getItem(key)||"null");if(old){saved=old;break}}}}catch{}if(saved&&typeof saved==="object"){gameState=normalizeGame(saved);if(!Array.isArray(saved.buildings)&&saved.buildings){const legacyMap={bakery:"bakery",tinyBakery:"bakery",farm:"farm",cookieFarm:"farm",oven:"oven",royalOven:"oven",factory:"factory",cookieFactory:"factory",mine:"mine",cookieMine:"mine",generator:"generator",enchantedGenerator:"generator",laboratory:"laboratory",royalLab:"laboratory",royalDessertLaboratory:"laboratory",castle:"oven"};Object.entries(saved.buildings).forEach(([id,count])=>{for(let i=0;i<Number(count||0);i++){const def=buildingDefs.find(b=>b.id===(legacyMap[id]||id));if(def)gameState.buildings.push({uid:cryptoRandomId(),type:def.id,level:1,assigned:def.workers,status:"active",builtAt:Date.now(),expiresAt:Date.now()+def.life*1000})}});if(!saved.workers)gameState.workers.population=gameState.buildings.reduce((n,b)=>n+b.assigned,0)}if(saved.upgrades&&Array.isArray(saved.upgrades)){const oldMap={strongHands:"gloves",rollingPin:"pin",ovenHeat:"ovenFlame",royalRecipe:"recipe"};gameState.upgrades=[...new Set(gameState.upgrades.map(x=>oldMap[x]||x))]}}
+ checkBuildingExpirations();const elapsed=Math.max(0,Math.min((Date.now()-(Number(gameState.lastTime)||Date.now()))/1000,8*3600));const offline=productionRate()*elapsed;if(offline>0){gameState.cookies+=offline;gameState.total+=offline;gameState.runTotal+=offline;notify("OFFLINE BAKING","Your bakeries produced "+formatNumber(offline)+" cookies while you were away.","🍪");}gameState.stats.playSeconds+=0;gameState.lastTime=Date.now();checkBuildingExpirations();checkCosmeticUnlocks();refreshQuests(false);}
+function cryptoRandomId(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36)}
+function persistGame(){try{gameState.lastTime=Date.now();localStorage.setItem(GAME_KEY,JSON.stringify(gameState));const el=$("#saveStatus");if(el)el.textContent="● ROYAL RECORD SAVED";setTimeout(()=>{if(el)el.textContent="● AUTOSAVE READY"},1200)}catch{showToast("The royal archive could not save. Check browser storage.")}}
+function formatNumber(n){if(!Number.isFinite(Number(n)))return"0";n=Number(n);if(n<1000)return Math.floor(n).toLocaleString();for(const [v,s] of [[1e15,"Qa"],[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"K"]])if(n>=v)return(n/v).toFixed(n/v>=100?0:1)+s;return Math.floor(n).toLocaleString()}
+function productionMultiplier(){let m=1+(gameState.crowns*.05);for(const id of gameState.upgrades){const u=upgradeDefs.find(x=>x.id===id);if(u&&u.effect==="rate")m*=u.value}return m}
+function productionRate(){return gameState.buildings.reduce((sum,b)=>{if(b.status!=="active")return sum;const def=buildingDefs.find(x=>x.id===b.type);if(!def)return sum;const assigned=Math.min(b.assigned||0,def.workers);const efficiency=def.workers?Math.min(1,assigned/def.workers):1;const trained=1+(gameState.workers.trained*.03);return sum+def.rate*(b.level||1)*efficiency*trained},0)*productionMultiplier()}
+function rankFor(total){let rank=rankDefs[0];rankDefs.forEach(r=>{if(total>=r.at)rank=r});return rank.name}
+function addCookies(amount,countTotal=true){if(!Number.isFinite(amount)||amount<=0)return;gameState.cookies+=amount;if(countTotal){gameState.total+=amount;gameState.runTotal+=amount;}}
+function notify(title,message,icon="📜",actions=[]){const n={id:cryptoRandomId(),title,message,icon,time:Date.now(),read:false,actions};gameState.notifications.unshift(n);gameState.notifications=gameState.notifications.slice(0,100);}
+function addInventory(id,qty=1){gameState.inventory[id]=(gameState.inventory[id]||0)+qty;const item=specialCookieDefs.find(x=>x.id===id);if(item)notify("SPECIAL COOKIE FOUND",`You collected ${item.name}. Check your inventory.`,item.icon)}
+function maybeDropCookie(){const chance=Math.random();if(chance<.004)addInventory("royalCookie");else if(chance<.02)addInventory("moonCookie");else if(chance<.09)addInventory("goldenCookie");else if(chance<.24)addInventory("chocoChip")}
+function checkBuildingExpirations(){const now=Date.now();gameState.buildings.forEach(b=>{if(b.status==="active"&&b.expiresAt&&b.expiresAt<=now){b.status="expired";b.assigned=0;const def=buildingDefs.find(x=>x.id===b.type);notify("ESTATE NEEDS ATTENTION",`${def?.name||"A building"} has expired. Choose Repair to restore it or Abandon to remove it.`,"⚠️",[{label:"REPAIR",type:"repair",uid:b.uid},{label:"ABANDON",type:"abandon",uid:b.uid}]);}})}
+function checkCosmeticUnlocks(){const conditions={cocoaCrown:gameState.total>=1000,goldenApron:gameState.buildings.length>=5,sugarAura:Object.values(gameState.inventory).reduce((a,b)=>a+b,0)>=3,emperorCape:gameState.total>=1e6};cosmeticDefs.forEach(c=>{if(conditions[c.id]&&!gameState.cosmetics.includes(c.id)){gameState.cosmetics.push(c.id);notify("NEW COSMETIC UNLOCKED",`${c.name} has been added to your cosmetics collection.`,c.icon)}})}
+function checkAchievements(){achievementDefs.forEach(a=>{if(a.test(gameState)&&!gameState.claimedAchievements.includes(a.id)&&!gameState.notifications.some(n=>n.title==="ACHIEVEMENT READY"&&n.message.startsWith(a.name))){notify("ACHIEVEMENT READY",`${a.name} is complete. Claim your reward in Trophies.`,a.icon)}})}
+function refreshQuests(allowNotify=true){const day=Math.floor(Date.now()/86400000);if(gameState.quests.daily!==day){gameState.quests.daily=day;gameState.quests.startTotal=gameState.total;gameState.quests.startClicks=gameState.stats.clicks;gameState.quests.startBuildings=gameState.stats.buildingsBought;if(allowNotify)notify("NEW ROYAL ORDERS","Fresh daily quests have arrived.","📜")}}
+function questDefs(){const q=gameState.quests;return[
+ {id:"dailyBake",name:"A Fresh Batch",desc:"Bake 500 cookies today.",progress:Math.max(0,gameState.total-(q.startTotal||0)),goal:500,reward:180,icon:"🍪"},
+ {id:"dailyClicks",name:"Busy Baker",desc:"Click the royal cookie 40 times.",progress:Math.max(0,gameState.stats.clicks-(q.startClicks||0)),goal:40,reward:120,icon:"👆"},
+ {id:"dailyEstate",name:"Growing Domain",desc:"Purchase 1 new building today.",progress:Math.max(0,gameState.stats.buildingsBought-(q.startBuildings||0)),goal:1,reward:250,icon:"🏰"}
+]}
+function playClickSound(){if(!gameState.sound)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;soundContext ||= new Ctx();if(soundContext.state==="suspended")soundContext.resume();const osc=soundContext.createOscillator(),gain=soundContext.createGain();osc.type="triangle";osc.frequency.value=430+Math.random()*220;gain.gain.setValueAtTime(.035,soundContext.currentTime);gain.gain.exponentialRampToValueAtTime(.001,soundContext.currentTime+.11);osc.connect(gain);gain.connect(soundContext.destination);osc.start();osc.stop(soundContext.currentTime+.12)}catch{}}
+function buyBuilding(type){const def=buildingDefs.find(x=>x.id===type);if(!def)return;const owned=gameState.buildings.filter(b=>b.type===type).length;const cost=Math.floor(def.base*Math.pow(1.18,owned));if(gameState.cookies<cost){showToast("Not enough cookies for this estate.");return}if(gameState.workers.population-gameState.buildings.reduce((n,b)=>n+(b.assigned||0),0)<def.workers){showToast(`You need ${def.workers} available workers to staff ${def.name}.`);return}gameState.cookies-=cost;gameState.stats.spent+=cost;gameState.stats.buildingsBought++;const b={uid:cryptoRandomId(),type,level:1,assigned:def.workers,status:"constructing",builtAt:Date.now(),buildUntil:Date.now()+def.build*1000,expiresAt:0};gameState.buildings.push(b);notify("CONSTRUCTION BEGUN",`${def.name} is being built. Construction takes ${Math.round(def.build/60)} minutes.`,def.icon);showToast(`${def.name} construction started.`);persistGame();renderGame()}
+function buyUpgrade(id){const u=upgradeDefs.find(x=>x.id===id);if(!u||gameState.upgrades.includes(id))return;if(gameState.cookies<u.cost){showToast("Not enough cookies for this upgrade.");return}gameState.cookies-=u.cost;gameState.stats.spent+=u.cost;gameState.upgrades.push(id);if(u.effect==="click")gameState.clickPower*=u.value;notify("ROYAL UPGRADE PURCHASED",`${u.name} is now active.`,u.icon);persistGame();renderGame()}
+function hireWorker(){const cost=Math.floor(25*Math.pow(1.12,gameState.workers.population));if(gameState.cookies<cost){showToast("Not enough cookies to hire a worker.");return}gameState.cookies-=cost;gameState.stats.spent+=cost;gameState.workers.population++;notify("NEW WORKER HIRED","A new baker has joined your kingdom.","👤");persistGame();renderGame()}
+function trainWorker(){const cost=100*(gameState.workers.trained+1);if(gameState.cookies<cost){showToast("Not enough cookies to train a worker.");return}if(gameState.workers.trained>=gameState.workers.population){showToast("Hire more workers before training another.");return}gameState.cookies-=cost;gameState.stats.spent+=cost;gameState.workers.trained++;notify("WORKER TRAINED","Your workforce has become more efficient.","🎓");persistGame();renderGame()}
+function autoAssign(){let available=gameState.workers.population;gameState.buildings.forEach(b=>{if(b.status!=="active"){b.assigned=0;return}const def=buildingDefs.find(x=>x.id===b.type);const n=Math.min(def?.workers||0,available);b.assigned=n;available-=n});persistGame();renderGame();showToast("Workers assigned to active estates.")}
+function upgradeBuilding(uid){const b=gameState.buildings.find(x=>x.uid===uid&&x.status==="active");if(!b)return;const def=buildingDefs.find(x=>x.id===b.type);const cost=Math.floor(def.base*(b.level||1)*3);if(gameState.cookies<cost){showToast("Not enough cookies to upgrade this estate.");return}gameState.cookies-=cost;gameState.stats.spent+=cost;b.level=(b.level||1)+1;notify("ESTATE UPGRADED",`${def.name} has reached level ${b.level}. Production increased.`,"⬆️");persistGame();renderGame()}
+function repairBuilding(uid){const b=gameState.buildings.find(x=>x.uid===uid);if(!b||b.status!=="expired")return;const def=buildingDefs.find(x=>x.id===b.type);const cost=Math.floor(def.base*(b.level||1)*2.5);const popCost=Math.max(1,Math.ceil(def.workers/2));if(gameState.cookies<cost||gameState.workers.population<popCost){showToast(`Repair requires ${formatNumber(cost)} cookies and ${popCost} population.`);return}gameState.cookies-=cost;gameState.stats.spent+=cost;gameState.workers.population-=popCost;b.assigned=0;b.status="repairing";b.repairUntil=Date.now()+600*1000;notify("ESTATE REPAIR STARTED",`${def.name} is being restored. Its level and upgrades will be preserved.`,"🛠️");persistGame();renderGame()}
+function abandonBuilding(uid){const b=gameState.buildings.find(x=>x.uid===uid);if(!b||b.status!=="expired")return;if(!confirm("Abandon this expired building? Its level and progress will be permanently lost."))return;gameState.buildings=gameState.buildings.filter(x=>x.uid!==uid);notify("ESTATE ABANDONED","The expired estate has been removed from your kingdom.","🏚️");persistGame();renderGame()}
+function renderBuildings(){const list=$("#buildingList");if(!list)return;list.innerHTML="";const estates=buildingDefs.map(def=>{const owned=gameState.buildings.filter(b=>b.type===def.id);const cost=Math.floor(def.base*Math.pow(1.18,owned.length));const article=document.createElement("article");article.className="ce-item";const icon=document.createElement("div");icon.className="ce-item-icon";icon.textContent=def.icon;const info=document.createElement("div");info.className="ce-item-info";const title=document.createElement("strong");title.textContent=def.name;const desc=document.createElement("p");desc.textContent=def.desc;const meta=document.createElement("small");meta.textContent=`OWNED ${owned.length} · +${formatNumber(def.rate)} / SEC · ${def.workers} WORKERS · ${Math.round(def.build/60)} MIN BUILD`;info.append(title,desc,meta);const action=document.createElement("button");action.className="ce-item-action";action.textContent=`BUILD ${formatNumber(cost)} 🍪`;action.disabled=gameState.cookies<cost||availableWorkers()<def.workers;action.addEventListener("click",()=>buyBuilding(def.id));article.append(icon,info,action);list.append(article)});gameState.buildings.forEach(b=>{const def=buildingDefs.find(x=>x.id===b.type);if(!def)return;const article=document.createElement("article");article.className=`ce-item ${b.status}`;const icon=document.createElement("div");icon.className="ce-item-icon";icon.textContent=b.status==="expired"?"⚠️":def.icon;const info=document.createElement("div");info.className="ce-item-info";const title=document.createElement("strong");title.textContent=`${def.name} · ${b.status==="active"?"LEVEL "+b.level:b.status.toUpperCase()}`;const desc=document.createElement("p");desc.textContent=b.status==="expired"?"This estate has expired and no longer produces cookies.":b.status==="active"?`${formatNumber(def.rate*(b.level||1))} base cookies per second · ${b.assigned||0} workers assigned.`:"The royal builders are still at work.";const meta=document.createElement("small");meta.textContent=b.status==="active"?`UPGRADE COST ${formatNumber(Math.floor(def.base*(b.level||1)*3))} COOKIES · EXPIRES ${new Date(b.expiresAt).toLocaleDateString()}`:`LEVEL ${b.level} · ${b.status==="expired"?"REPAIR OR ABANDON":"TIME REMAINING: "+formatDuration(Math.max(0,((b.status==="constructing"?b.buildUntil:b.repairUntil)-Date.now())/1000))}`;info.append(title,desc,meta);const action=document.createElement("div");if(b.status==="expired"){const repair=document.createElement("button");repair.className="ce-item-action";repair.textContent="REPAIR";repair.addEventListener("click",()=>repairBuilding(b.uid));const abandon=document.createElement("button");abandon.className="ce-item-action danger";abandon.textContent="ABANDON";abandon.addEventListener("click",()=>abandonBuilding(b.uid));action.append(repair,abandon);action.style.display="grid";action.style.gap="5px"}else if(b.status==="active"){action.className="ce-item-action secondary";action.textContent="UPGRADE";action.addEventListener("click",()=>upgradeBuilding(b.uid))}else{action.className="ce-item-action secondary";action.textContent="IN PROGRESS"}article.append(icon,info,action);list.append(article)});if(!list.children.length)list.innerHTML='<div class="ce-empty">Your estate is waiting for its first building.</div>';$("#buildingEstateCount").textContent=`${gameState.buildings.length} ESTATES`}
+function availableWorkers(){return Math.max(0,gameState.workers.population-gameState.buildings.reduce((n,b)=>n+(["active","constructing"].includes(b.status)?(b.assigned||0):0),0))}
+function renderWorkforce(){const list=$("#workforceList");if(!list)return;const assigned=gameState.buildings.reduce((n,b)=>n+(b.assigned||0),0);$("#workerCountLabel").textContent=`${gameState.workers.population} WORKERS`;$("#workerPanelSummary").innerHTML=`<div><span>POPULATION</span><strong>${gameState.workers.population}</strong></div><div><span>ASSIGNED</span><strong>${assigned}</strong></div><div><span>TRAINED</span><strong>${gameState.workers.trained}</strong></div>`;$("#hireWorkerButton").textContent=`HIRE WORKER · ${formatNumber(Math.floor(25*Math.pow(1.12,gameState.workers.population)))} 🍪`;
+ list.innerHTML="";gameState.buildings.forEach(b=>{if(b.status!=="active")return;const def=buildingDefs.find(x=>x.id===b.type);const article=document.createElement("article");article.className="ce-item";const icon=document.createElement("div");icon.className="ce-item-icon";icon.textContent="👷";const info=document.createElement("div");info.className="ce-item-info";const title=document.createElement("strong");title.textContent=def.name;const desc=document.createElement("p");desc.textContent=`${b.assigned||0} of ${def.workers} workers assigned · Level ${b.level}`;const meta=document.createElement("small");meta.textContent=`${formatNumber(def.rate*(b.level||1)*(Math.min(1,(b.assigned||0)/def.workers)))} BASE COOKIES / SEC`;info.append(title,desc,meta);const actions=document.createElement("div");actions.style.display="flex";actions.style.gap="5px";const minus=document.createElement("button");minus.className="ce-item-action secondary";minus.textContent="−";minus.disabled=!(b.assigned>0);minus.addEventListener("click",()=>{b.assigned=Math.max(0,b.assigned-1);renderGame();persistGame()});const plus=document.createElement("button");plus.className="ce-item-action secondary";plus.textContent="+";plus.disabled=availableWorkers()<1||b.assigned>=def.workers;plus.addEventListener("click",()=>{b.assigned=Math.min(def.workers,b.assigned+1);renderGame();persistGame()});actions.append(minus,plus);article.append(icon,info,actions);list.append(article)});if(!list.children.length)list.innerHTML='<div class="ce-empty">Build an estate to assign your first workers.</div>'}
+function renderUpgrades(){const list=$("#upgradeList");if(!list)return;list.innerHTML="";$("#upgradeCountLabel").textContent=`${gameState.upgrades.length} / ${upgradeDefs.length} OWNED`;upgradeDefs.forEach(u=>{const owned=gameState.upgrades.includes(u.id);const article=document.createElement("article");article.className="ce-item";const icon=document.createElement("div");icon.className="ce-item-icon";icon.textContent=u.icon;const info=document.createElement("div");info.className="ce-item-info";const title=document.createElement("strong");title.textContent=u.name;const desc=document.createElement("p");desc.textContent=u.desc;const meta=document.createElement("small");meta.textContent=owned?"ROYAL UPGRADE ACTIVE":"PERMANENT EMPIRE IMPROVEMENT";info.append(title,desc,meta);const button=document.createElement("button");button.className="ce-item-action";button.textContent=owned?"OWNED":`${formatNumber(u.cost)} 🍪`;button.disabled=owned||gameState.cookies<u.cost;button.addEventListener("click",()=>buyUpgrade(u.id));article.append(icon,info,button);list.append(article)})}
+function eatSpecialCookie(id){const item=specialCookieDefs.find(x=>x.id===id);if(!item||!(gameState.inventory[id]>0))return;gameState.inventory[id]--;const reward=Math.max(25,Math.floor(productionRate()*60+gameState.clickPower*25));addCookies(reward);notify("SPECIAL COOKIE ENJOYED",`${item.name} gave you ${formatNumber(reward)} cookies.`,item.icon);persistGame();renderGame()}
+function renderInventory(){const list=$("#inventoryList");if(!list)return;list.innerHTML="";let count=0;specialCookieDefs.forEach(item=>{const qty=gameState.inventory[item.id]||0;count+=qty;const card=document.createElement("div");card.className=`ce-collection-item ${qty?"":"locked"}`;card.innerHTML=`<span class="ce-collect-icon">${qty?item.icon:"❔"}</span><strong>${qty?item.name:"Undiscovered Cookie"}</strong><p>${qty?item.desc:"Discover this special cookie while baking."}</p><small class="ce-rarity-${item.rarity}">${item.rarity.toUpperCase()} · QTY ${qty}</small>`;if(qty){const use=document.createElement("button");use.className="ce-item-action secondary";use.style.marginTop="8px";use.textContent="ENJOY COOKIE";use.addEventListener("click",()=>eatSpecialCookie(item.id));card.append(use)}list.append(card)});if(!list.children.length)list.innerHTML='<div class="ce-empty">No collected items yet. Keep baking!</div>';$("#inventoryCountLabel").textContent=`${count} ITEMS`;$("#inventoryBadge").hidden=count===0;$("#inventoryBadge").textContent=count}
+function renderCosmetics(){const list=$("#cosmeticList");if(!list)return;list.innerHTML="";$("#cosmeticCountLabel").textContent=`${gameState.cosmetics.length} OWNED`;cosmeticDefs.forEach(c=>{const owned=gameState.cosmetics.includes(c.id),equipped=gameState.equipped===c.id;const card=document.createElement("div");card.className=`ce-collection-item ${owned?"":"locked"}`;const icon=document.createElement("span");icon.className="ce-collect-icon";icon.textContent=owned?c.icon:"🔒";const title=document.createElement("strong");title.textContent=c.name;const desc=document.createElement("p");desc.textContent=owned?c.desc:c.unlock;const rarity=document.createElement("small");rarity.className=`ce-rarity-${c.rarity}`;rarity.textContent=c.rarity.toUpperCase();card.append(icon,title,desc,rarity);if(owned){const btn=document.createElement("button");btn.className="ce-item-action secondary";btn.style.marginTop="9px";btn.textContent=equipped?"EQUIPPED": "EQUIP";btn.addEventListener("click",()=>{gameState.equipped=equipped?null:c.id;notify("COSMETIC UPDATED",equipped?"Your cosmetic has been unequipped.":`${c.name} is now equipped.`,c.icon);persistGame();renderGame()});card.append(btn)}list.append(card)})}
+function renderNotifications(){const list=$("#notificationList");if(!list)return;list.innerHTML="";const unread=gameState.notifications.filter(n=>!n.read).length;$("#notificationBadge").hidden=unread===0;$("#notificationBadge").textContent=unread;if(!gameState.notifications.length){list.innerHTML='<div class="ce-empty">No royal messages. Your kingdom is peaceful.</div>';return}gameState.notifications.forEach(n=>{const card=document.createElement("article");card.className=`ce-notice ${n.read?"":"unread"}`;const top=document.createElement("div");top.className="ce-notice-top";top.innerHTML=`<span>${n.icon} ROYAL MESSAGE</span><time>${new Date(n.time).toLocaleString()}</time>`;const title=document.createElement("strong");title.textContent=n.title;const msg=document.createElement("p");msg.textContent=n.message;const actions=document.createElement("div");actions.className="ce-notice-actions";(n.actions||[]).forEach(act=>{const action=document.createElement("button");action.className="ce-text-button";action.textContent=act.label;action.addEventListener("click",()=>{if(act.type==="repair")repairBuilding(act.uid);if(act.type==="abandon")abandonBuilding(act.uid);n.read=true;persistGame();renderNotifications()});actions.append(action)});if(!n.read){const read=document.createElement("button");read.className="ce-text-button";read.textContent="MARK READ";read.addEventListener("click",()=>{n.read=true;persistGame();renderNotifications()});actions.append(read)}card.append(top,title,msg,actions);list.append(card)})}
+function renderQuests(){const list=$("#questList");if(!list)return;list.innerHTML="";let complete=0;questDefs().forEach(q=>{const done=q.progress>=q.goal,claimed=gameState.claimedQuests.includes(q.id);if(done)complete++;const card=document.createElement("article");card.className="ce-item";const icon=document.createElement("div");icon.className="ce-item-icon";icon.textContent=q.icon;const info=document.createElement("div");info.className="ce-item-info";const title=document.createElement("strong");title.textContent=q.name;const desc=document.createElement("p");desc.textContent=q.desc;const meta=document.createElement("small");meta.textContent=`${Math.min(q.progress,q.goal)} / ${q.goal} · REWARD ${q.reward} COOKIES`;const progress=document.createElement("div");progress.className="ce-quest-progress";progress.innerHTML=`<span style="width:${Math.min(100,q.progress/q.goal*100)}%"></span>`;info.append(title,desc,meta,progress);const button=document.createElement("button");button.className="ce-item-action";button.textContent=claimed?"CLAIMED":done?"CLAIM":"IN PROGRESS";button.disabled=!done||claimed;button.addEventListener("click",()=>{if(button.disabled)return;gameState.claimedQuests.push(q.id);addCookies(q.reward);notify("QUEST REWARD CLAIMED",`${q.name}: ${q.reward} cookies added.`,q.icon);persistGame();renderGame()});card.append(icon,info,button);list.append(card)});$("#questCountLabel").textContent=`${complete} / 3 COMPLETE`;const contracts=$("#contractList");contracts.innerHTML="";contractDefs.forEach(c=>{const progress=Math.min(gameState.total,c.goal),done=progress>=c.goal,claimed=gameState.contracts[c.id+"_claimed"];const card=document.createElement("article");card.className="ce-item";const icon=document.createElement("div");icon.className="ce-item-icon";icon.textContent="📜";const info=document.createElement("div");info.className="ce-item-info";const title=document.createElement("strong");title.textContent=c.name;const desc=document.createElement("p");desc.textContent=c.desc;const meta=document.createElement("small");meta.textContent=`${formatNumber(Math.min(progress,c.goal))} / ${formatNumber(c.goal)} · REWARD ${formatNumber(c.reward)}`;const bar=document.createElement("div");bar.className="ce-quest-progress";bar.innerHTML=`<span style="width:${Math.min(100,progress/c.goal*100)}%"></span>`;info.append(title,desc,meta,bar);const btn=document.createElement("button");btn.className="ce-item-action";btn.textContent=claimed?"CLAIMED":done?"CLAIM":"ACTIVE";btn.disabled=!done||claimed;btn.addEventListener("click",()=>{gameState.contracts[c.id+"_claimed"]=true;gameState.contractsCompleted++;addCookies(c.reward);notify("ROYAL CONTRACT COMPLETE",`${c.name} has been fulfilled.`,"📜");persistGame();renderGame()});card.append(icon,info,btn);contracts.append(card)})}
+function renderAchievements(){const list=$("#achievementList");if(!list)return;list.innerHTML="";let claimed=0;achievementDefs.forEach(a=>{const done=a.test(gameState),paid=gameState.claimedAchievements.includes(a.id);if(paid)claimed++;const card=document.createElement("article");card.className="ce-item";const icon=document.createElement("div");icon.className="ce-item-icon";icon.textContent=done?a.icon:"🔒";const info=document.createElement("div");info.className="ce-item-info";const title=document.createElement("strong");title.textContent=a.name;const desc=document.createElement("p");desc.textContent=a.desc;const meta=document.createElement("small");meta.textContent=`REWARD ${formatNumber(a.reward)} COOKIES · ${paid?"CLAIMED":done?"READY TO CLAIM":"LOCKED"}`;info.append(title,desc,meta);const button=document.createElement("button");button.className="ce-item-action";button.textContent=paid?"CLAIMED":done?"CLAIM":"LOCKED";button.disabled=!done||paid;button.addEventListener("click",()=>{gameState.claimedAchievements.push(a.id);addCookies(a.reward);if(Math.random()<.6)addInventory("chocoChip");notify("ACHIEVEMENT REWARD",`${a.name}: reward claimed.`,a.icon);persistGame();renderGame()});card.append(icon,info,button);list.append(card)});$("#achievementCount").textContent=`${claimed} / ${achievementDefs.length} CLAIMED`}
+function renderStatistics(){const grid=$("#statisticsGrid");if(!grid)return;const values=[["LIFETIME COOKIES",formatNumber(gameState.total)],["COOKIES SPENT",formatNumber(gameState.stats.spent)],["TOTAL CLICKS",formatNumber(gameState.stats.clicks)],["COOKIES / SECOND",formatNumber(productionRate())],["BUILDINGS PURCHASED",formatNumber(gameState.stats.buildingsBought)],["UPGRADES OWNED",`${gameState.upgrades.length} / ${upgradeDefs.length}`],["WORKERS TRAINED",formatNumber(gameState.workers.trained)],["CONTRACTS COMPLETE",formatNumber(gameState.contractsCompleted)],["ROYAL EVENTS WON",formatNumber(gameState.stats.eventsWon)],["PRESTIGE COUNT",formatNumber(gameState.stats.prestige)],["PLAY TIME",formatDuration(gameState.stats.playSeconds)],["ROYAL CROWNS",formatNumber(gameState.crowns)]];grid.innerHTML=values.map(([k,v])=>`<div class="ce-stat"><span>${k}</span><strong>${v}</strong></div>`).join("");const book=$("#collectionBook");book.innerHTML="";specialCookieDefs.forEach(item=>{const found=(gameState.inventory[item.id]||0)>0;const card=document.createElement("div");card.className=`ce-collection-item ${found?"":"locked"}`;card.innerHTML=`<span class="ce-collect-icon">${found?item.icon:"❔"}</span><strong>${found?item.name:"Unknown Cookie"}</strong><p>${found?"Discovered in your royal collection.":"Not yet discovered."}</p>`;book.append(card)});$("#floatingNumbersToggle").checked=gameState.settings.floating;$("#compactEffectsToggle").checked=gameState.settings.reduced}
+function formatDuration(seconds){seconds=Math.max(0,Math.floor(seconds));if(seconds<60)return`${seconds}s`;if(seconds<3600)return`${Math.floor(seconds/60)}m ${seconds%60}s`;return`${Math.floor(seconds/3600)}h ${Math.floor(seconds%3600/60)}m`}
+function renderGame(){if(!gameView||gameView.hidden)return;checkBuildingExpirations();checkAchievements();checkCosmeticUnlocks();refreshQuests(false);$("#cookieScene").dataset.cosmetic=gameState.equipped||"";$("#cookieCount").textContent=formatNumber(gameState.cookies);$("#cookieRate").textContent=formatNumber(productionRate());$("#totalBaked").textContent=formatNumber(gameState.total);$("#clickPower").textContent=formatNumber(gameState.clickPower);$("#buildingCount").textContent=gameState.buildings.length;$("#populationCount").textContent=gameState.workers.population;$("#workerSummary").textContent=`${gameState.buildings.reduce((n,b)=>n+(b.assigned||0),0)} workers assigned`;$("#crownCount").textContent=gameState.crowns;$("#empireValue").textContent=formatNumber(gameState.total);const level=1+Math.floor(Math.log10(Math.max(1,gameState.runTotal)));$("#kingdomLevel").textContent=`EMPIRE LEVEL ${level}`;$("#kingdomLevelBottom").textContent=`LEVEL ${level}`;$("#kingdomRank").textContent=rankFor(gameState.runTotal);const next=[100,1000,10000,100000,1e6,1e7,1e9].find(n=>gameState.runTotal<n)||1e9;const previous=rankDefs.filter(r=>r.at<=gameState.runTotal).at(-1)?.at||0;const pct=next===previous?100:Math.min(100,(gameState.runTotal-previous)/(next-previous)*100);$("#empireProgressBar").style.width=`${pct}%`;$("#empireProgressText").textContent=`${formatNumber(gameState.runTotal)} / ${formatNumber(next)} cookies this reign`;$("#gameSoundToggle").textContent=`SOUND: ${gameState.sound?"ON":"OFF"}`;$("#gameSoundToggle").setAttribute("aria-pressed",String(gameState.sound));$("#playTime").textContent=formatDuration(gameState.stats.playSeconds);$("#dailyRewardStatus").textContent=canClaimDaily()?"READY":"CLAIMED";$("#dailyRewardButton").disabled=!canClaimDaily();$("#prestigeStatus").textContent=gameState.runTotal>=1e6?"AVAILABLE":"1M THIS REIGN";$("#prestigeButton").disabled=gameState.runTotal<1e6;$("#royalEventPanel").innerHTML=gameState.event?`<strong>${gameState.event.title}</strong><p>${gameState.event.desc}</p><button class="ce-gold-button" id="claimEventButton">CLAIM EVENT GIFT · ${formatNumber(gameState.event.reward)} 🍪</button>`:`<strong>THE KINGDOM AWAITS</strong><p>A royal event will arrive from time to time. Keep your bakeries active.</p>`;$("#claimEventButton")?.addEventListener("click",claimRoyalEvent);renderBuildings();renderWorkforce();renderUpgrades();renderInventory();renderCosmetics();renderNotifications();renderQuests();renderAchievements();renderStatistics()}
+function canClaimDaily(){return Date.now()-gameState.daily.lastClaim>=20*3600*1000}
+function claimDaily(){if(!canClaimDaily())return;const today=new Date().toDateString(),yesterday=new Date(Date.now()-86400000).toDateString();const last=gameState.daily.lastDate;gameState.daily.streak=last===yesterday?Math.min(7,gameState.daily.streak+1):1;gameState.daily.lastDate=today;gameState.daily.lastClaim=Date.now();const reward=100*gameState.daily.streak;addCookies(reward);addInventory(gameState.daily.streak>=7?"goldenCookie":"chocoChip");notify("DAILY ROYAL GIFT CLAIMED",`Day ${gameState.daily.streak} reward: ${reward} cookies and a special treat.`,"🎁");persistGame();renderGame()}
+function claimRoyalEvent(){if(!gameState.event)return;addCookies(gameState.event.reward);gameState.stats.eventsWon++;notify("ROYAL EVENT REWARD",`${gameState.event.title}: ${formatNumber(gameState.event.reward)} cookies received.`,"🎉");gameState.event=null;persistGame();renderGame()}
+function triggerRoyalEvent(){if(gameState.event||Math.random()>.18)return;const events=[{title:"Golden Cookie Rain",desc:"A royal cloud has showered the kingdom with golden cookies.",reward:Math.max(50,Math.floor(productionRate()*180+gameState.clickPower*25))},{title:"Village Bake-Off",desc:"The village bakers have shared their secret stash with you.",reward:Math.max(100,Math.floor(gameState.cookies*.08+250))},{title:"Royal Market Day",desc:"A travelling merchant offers a generous cookie grant.",reward:Math.max(150,Math.floor(productionRate()*240+500))}];gameState.event=events[Math.floor(Math.random()*events.length)];notify("A ROYAL EVENT HAS ARRIVED",gameState.event.title+": "+gameState.event.desc,"🎉");renderGame()}
+function prestige(){if(gameState.runTotal<1e6)return;if(!confirm("Begin Royal Prestige? Your cookies, buildings, workers and upgrades reset. Your crowns, inventory, cosmetics, trophies and permanent legacy remain."))return;gameState.crowns+=Math.max(1,Math.floor(gameState.runTotal/1e6));gameState.stats.prestige++;gameState.cookies=0;gameState.runTotal=0;gameState.clickPower=1;gameState.buildings=[];gameState.upgrades=[];gameState.workers={population:0,trained:0};notify("ROYAL PRESTIGE COMPLETE","Your empire has been reborn. Royal crowns grant a permanent production bonus.","👑");persistGame();renderGame()}
+function clickCookie(){addCookies(gameState.clickPower);gameState.stats.clicks++;playClickSound();if(gameState.stats.clicks%25===0)maybeDropCookie();if(gameState.settings.floating){const burst=$("#clickBurst");if(burst){const el=document.createElement("span");el.className="ce-float-number";el.textContent=`+${formatNumber(gameState.clickPower)}`;el.style.left=`${35+Math.random()*30}%`;el.style.top=`${35+Math.random()*25}%`;burst.append(el);setTimeout(()=>el.remove(),900)}}checkAchievements();renderGame();if(gameState.stats.clicks%5===0)persistGame()}
+$("#giantCookie")?.addEventListener("click",clickCookie);
+$("#gameSoundToggle")?.addEventListener("click",()=>{gameState.sound=!gameState.sound;persistGame();renderGame();if(gameState.sound)playClickSound()});
+$("#hireWorkerButton")?.addEventListener("click",hireWorker);$("#trainWorkerButton")?.addEventListener("click",trainWorker);$("#autoAssignButton")?.addEventListener("click",autoAssign);$("#dailyRewardButton")?.addEventListener("click",claimDaily);$("#prestigeButton")?.addEventListener("click",prestige);
+$("#clearNotificationsButton")?.addEventListener("click",()=>{gameState.notifications=gameState.notifications.filter(n=>!n.read);persistGame();renderNotifications()});
+$("#floatingNumbersToggle")?.addEventListener("change",e=>{gameState.settings.floating=e.target.checked;persistGame()});$("#compactEffectsToggle")?.addEventListener("change",e=>{gameState.settings.reduced=e.target.checked;$("#cookieScene")?.classList.toggle("reduced-effects",e.target.checked);persistGame()});
+$$(".ce-tab").forEach(btn=>btn.addEventListener("click",()=>{activeGameTab=btn.dataset.gameTab;$$(".ce-tab").forEach(x=>x.classList.toggle("active",x===btn));$$(".ce-tab-panel").forEach(p=>{const active=p.dataset.panel===activeGameTab;p.hidden=!active;p.classList.toggle("active",active)});if(activeGameTab==="notifications")gameState.notifications.forEach(n=>n.read=true);persistGame();renderGame()}));
+$("#saveGameButton")?.addEventListener("click",()=>{persistGame();showToast("Royal records saved successfully.")});
+$("#resetGameButton")?.addEventListener("click",()=>{if(!confirm("Reset your entire Cookie Emperor empire? This cannot be undone."))return;gameState=defaultGame();persistGame();renderGame();showToast("A new royal dynasty begins." )});
+$("#exportGameButton")?.addEventListener("click",()=>{const blob=new Blob([JSON.stringify(gameState,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="cookie-emperor-save.json";a.click();URL.revokeObjectURL(url);showToast("Royal save exported.")});
+$("#importGameButton")?.addEventListener("click",()=>$("#importSaveFile")?.click());
+$("#importSaveFile")?.addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());gameState=normalizeGame(data);persistGame();renderGame();showToast("Royal save imported.")}catch{showToast("That save file could not be read.")}e.target.value=""});
+function updateGameTimers(){const now=Date.now();let changed=false;gameState.buildings.forEach(b=>{if(b.status==="constructing"&&b.buildUntil<=now){b.status="active";const def=buildingDefs.find(x=>x.id===b.type);b.expiresAt=now+(def?.life||7*86400)*1000;notify("NEW ESTATE COMPLETE",`${def?.name||"Your building"} is ready and now producing cookies.`,def?.icon||"🏰");changed=true}else if(b.status==="repairing"&&b.repairUntil<=now){b.status="active";const def=buildingDefs.find(x=>x.id===b.type);b.expiresAt=now+(def?.life||7*86400)*1000;b.assigned=Math.min(def?.workers||0,availableWorkers());notify("ESTATE RESTORED",`${def?.name||"Your building"} has been repaired. Its level and upgrades are preserved.`,"🛠️");changed=true}});checkBuildingExpirations();if(changed){persistGame();renderGame()}}
 loadGame();
-applyOfflineProgress();
+setInterval(()=>{const now=performance.now(),elapsed=Math.min((now-lastTick)/1000,2);lastTick=now;if(gameView&&!gameView.hidden){const earned=productionRate()*elapsed;if(earned>0){addCookies(earned);if(Math.floor(gameState.total/100)!==Math.floor((gameState.total-earned)/100))checkAchievements();renderGame()}gameState.stats.playSeconds+=elapsed;updateGameTimers();if(Date.now()-lastAutosave>10000){persistGame();lastAutosave=Date.now()}if(Math.random()<.002)triggerRoyalEvent();if(Math.random()<.0015)maybeDropCookie()}},250);
+window.addEventListener("beforeunload",persistGame);
 
-updateGame();
-
-window.addEventListener("beforeunload", saveGame);
-
-console.log("COOKIE EMPEROR engine loaded.");
-console.log("Construction, workforce and kingdom systems ready.");
+/* Initial state */
+function initializePixaforge(){filterGames();updateFavoriteButtons();updateScrollInterface();route();console.log("%cPIXAFORGE","color:#c084fc;font-size:24px;font-weight:900;");console.log("%cFORGE YOUR EXPERIENCE.","color:#00e5ff;font-size:12px;")}
+initializePixaforge();
